@@ -39,3 +39,9 @@
 
 - `create-next-app` 安装依赖后报告 2 个 moderate severity npm audit 漏洞；Task 1 的 lint 验证不受影响，后续可单独评估依赖升级。
 - 本机 PATH 缺少 Maven。后续任务建议安装 Maven，或在项目中加入 Maven Wrapper 后统一使用 `mvnw`。
+
+## 修复记录
+
+- 2026-06-13：已将 Next.js 路由目录从 `frontend/src/app` 移动到计划要求的 `frontend/app`。
+- 同步将 `frontend/tsconfig.json` 中的 `@/*` 路径别名从 `./src/*` 调整为 `./*`，确保后续 `frontend/lib` 和 `frontend/components` 等目录可按计划直接使用。
+- 按后续使用需要保留空的 `frontend/src` 目录；后端验证使用 `tools/apache-maven-3.9.16/bin/mvn.cmd` 执行。

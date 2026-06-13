@@ -1,0 +1,80 @@
+package com.example.airesume.interview;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "interview_sessions")
+public class InterviewSessionEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Long resumeId;
+    private Long jobId;
+    private String role;
+    private String level;
+    private String type;
+    private String status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    protected InterviewSessionEntity() {
+    }
+
+    public InterviewSessionEntity(Long resumeId, Long jobId, String role, String level, String type) {
+        this.resumeId = resumeId;
+        this.jobId = jobId;
+        this.role = role;
+        this.level = level;
+        this.type = type;
+        this.status = "PENDING";
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Long getResumeId() {
+        return resumeId;
+    }
+
+    public Long getJobId() {
+        return jobId;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public String getLevel() {
+        return level;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void updateStatus(String status) {
+        this.status = status;
+        this.updatedAt = LocalDateTime.now();
+    }
+}
