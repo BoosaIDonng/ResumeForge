@@ -21,6 +21,11 @@ public class InterviewController {
         this.interviewService = interviewService;
     }
 
+    @GetMapping
+    public ApiResponse<List<InterviewSessionEntity>> list() {
+        return ApiResponse.ok(interviewService.listSessions());
+    }
+
     @PostMapping
     public ApiResponse<SessionRef> create(@RequestBody CreateInterviewRequest request) {
         InterviewSessionEntity session = interviewService.createSession(

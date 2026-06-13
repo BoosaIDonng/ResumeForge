@@ -35,6 +35,10 @@ public class InterviewService {
         return sessionRepository.save(session);
     }
 
+    public List<InterviewSessionEntity> listSessions() {
+        return sessionRepository.findAll();
+    }
+
     public InterviewSessionEntity getSession(Long id) {
         return sessionRepository.findById(id)
             .orElseThrow(() -> new ApiException("SESSION_NOT_FOUND", "面试会话不存在"));
