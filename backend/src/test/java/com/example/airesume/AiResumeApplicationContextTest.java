@@ -1,6 +1,15 @@
 package com.example.airesume;
 
+import com.example.airesume.ai.AiCallLogRepository;
+import com.example.airesume.ai.AiClient;
+import com.example.airesume.analysis.AnalysisReportRepository;
+import com.example.airesume.coverletter.CoverLetterPromptBuilder;
+import com.example.airesume.coverletter.CoverLetterRepository;
+import com.example.airesume.interview.InterviewFeedbackRepository;
+import com.example.airesume.interview.InterviewQuestionRepository;
+import com.example.airesume.interview.InterviewSessionRepository;
 import com.example.airesume.job.JobRepository;
+import com.example.airesume.optimization.OptimizationProposalRepository;
 import com.example.airesume.resume.ResumeRepository;
 import com.example.airesume.task.AiTaskRepository;
 import org.junit.jupiter.api.Test;
@@ -30,6 +39,33 @@ class AiResumeApplicationContextTest {
 
     @MockBean
     private StringRedisTemplate stringRedisTemplate;
+
+    @MockBean
+    private AnalysisReportRepository analysisReportRepository;
+
+    @MockBean
+    private AiCallLogRepository aiCallLogRepository;
+
+    @MockBean
+    private AiClient aiClient;
+
+    @MockBean
+    private OptimizationProposalRepository optimizationProposalRepository;
+
+    @MockBean
+    private InterviewSessionRepository interviewSessionRepository;
+
+    @MockBean
+    private InterviewQuestionRepository interviewQuestionRepository;
+
+    @MockBean
+    private InterviewFeedbackRepository interviewFeedbackRepository;
+
+    @MockBean
+    private CoverLetterRepository coverLetterRepository;
+
+    @MockBean
+    private CoverLetterPromptBuilder coverLetterPromptBuilder;
 
     @Test
     void contextLoads() {

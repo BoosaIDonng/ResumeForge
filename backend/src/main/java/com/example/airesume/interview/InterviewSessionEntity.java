@@ -19,6 +19,7 @@ public class InterviewSessionEntity {
     private String role;
     private String level;
     private String type;
+    private String persona;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -27,11 +28,16 @@ public class InterviewSessionEntity {
     }
 
     public InterviewSessionEntity(Long resumeId, Long jobId, String role, String level, String type) {
+        this(resumeId, jobId, role, level, type, null);
+    }
+
+    public InterviewSessionEntity(Long resumeId, Long jobId, String role, String level, String type, String persona) {
         this.resumeId = resumeId;
         this.jobId = jobId;
         this.role = role;
         this.level = level;
         this.type = type;
+        this.persona = persona;
         this.status = "PENDING";
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
@@ -59,6 +65,15 @@ public class InterviewSessionEntity {
 
     public String getType() {
         return type;
+    }
+
+    public String getPersona() {
+        return persona;
+    }
+
+    public void setPersona(String persona) {
+        this.persona = persona;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public String getStatus() {
