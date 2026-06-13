@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { AnalysisReport } from "@/components/analysis/AnalysisReport";
 import type { AnalysisReport as AnalysisReportType } from "@/lib/types";
 
 export default function AnalysisPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-3xl p-6 text-sm text-zinc-500">加载中...</div>}>
+      <AnalysisPageContent />
+    </Suspense>
+  );
+}
+
+function AnalysisPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiPost, apiGet } from "@/lib/api";
 import { TaskProgress } from "@/components/TaskProgress";
-import type { Job, AiTask } from "@/lib/types";
+import type { Job, AiTask, Resume } from "@/lib/types";
 
 export default function NewJobPage() {
   const router = useRouter();
+  const [resumes, setResumes] = useState<Resume[]>([]);
   const [resumeId, setResumeId] = useState("");
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
@@ -16,6 +17,10 @@ export default function NewJobPage() {
   const [error, setError] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<number | null>(null);
   const [jobId, setJobId] = useState<number | null>(null);
+
+  useEffect(() => {
+    apiGet<Resume[]>("/api/resumes").then(setResumes).catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,92 +62,102 @@ export default function NewJobPage() {
 
   if (taskId) {
     return (
-      <div className="mx-auto max-w-xl p-6">
+      <div className="mx-auto max-w-lg px-4 py-12">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">
           JD 分析中
         </h1>
         <TaskProgress taskId={taskId} onComplete={handleTaskComplete} />
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-4">
+          分析完成后将自动跳转到报告页面
+        </p>
       </div>
     );
   }
 
+  const inputClass = "w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors";
+  const labelClass = "block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5";
+
   return (
-    <div className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">
+    <div className="mx-auto max-w-lg px-4 py-10">
+      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
         新建 JD 分析
       </h1>
+      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">粘贴职位描述，AI 将对比简历并生成 ATS 匹配报告</p>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label htmlFor="resumeId" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            简历 ID
-          </label>
-          <input
-            id="resumeId"
-            type="text"
-            value={resumeId}
-            onChange={(e) => setResumeId(e.target.value)}
-            required
-            className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="输入简历 ID"
-          />
+          <label className={labelClass}>选择简历</label>
+          {resumes.length > 0 ? (
+            <select
+              value={resumeId}
+              onChange={(e) => setResumeId(e.target.value)}
+              required
+              className={inputClass}
+            >
+              <option value="">— 请选择简历 —</option>
+              {resumes.map((r) => (
+                <option key={r.id} value={r.id}>{r.title}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={resumeId}
+              onChange={(e) => setResumeId(e.target.value)}
+              required
+              placeholder="输入简历 ID"
+              className={inputClass}
+            />
+          )}
         </div>
 
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            职位名称
-          </label>
+          <label className={labelClass}>职位名称</label>
           <input
-            id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="例如：前端工程师"
+            className={inputClass}
+            placeholder="例如：高级 Java 工程师"
           />
         </div>
 
         <div>
-          <label htmlFor="company" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            公司名称
-          </label>
+          <label className={labelClass}>公司名称</label>
           <input
-            id="company"
             type="text"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             required
-            className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
             placeholder="例如：字节跳动"
           />
         </div>
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            职位描述 (JD)
-          </label>
+          <label className={labelClass}>职位描述 (JD)</label>
           <textarea
-            id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            rows={8}
-            className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-            placeholder="粘贴职位描述..."
+            rows={10}
+            className={`${inputClass} resize-y min-h-[200px]`}
+            placeholder="粘贴完整的职位描述..."
           />
+          <p className="mt-1 text-xs text-zinc-400">建议粘贴完整的 JD 原文以获得最准确的分析结果</p>
         </div>
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          disabled={loading || !resumeId}
+          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? "提交中..." : "开始分析"}
         </button>

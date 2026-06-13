@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { TaskProgress } from "@/components/TaskProgress";
@@ -25,6 +25,14 @@ type Proposal = {
 };
 
 export default function OptimizationProposalPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-3xl p-6 text-sm text-zinc-500">加载中...</div>}>
+      <OptimizationContent />
+    </Suspense>
+  );
+}
+
+function OptimizationContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const proposalId = params.proposalId as string;
