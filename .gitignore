@@ -12,3 +12,5 @@ tools/
 !.env.example
 reference-projects/
 .superpowers/
+tsconfig.tsbuildinfo
+next-env.d.ts
