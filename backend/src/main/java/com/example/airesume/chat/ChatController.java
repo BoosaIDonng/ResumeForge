@@ -8,6 +8,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * @deprecated Use {@link com.example.airesume.ai.tools.ToolChatController} instead.
+ * This SSE chat does not support tool execution — tools are defined but never executed.
+ */
+@Deprecated
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {

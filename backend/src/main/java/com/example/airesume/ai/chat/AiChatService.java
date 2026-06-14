@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
+/**
+ * @deprecated Use {@link com.example.airesume.ai.tools.ToolChatService} instead.
+ */
+@Deprecated
 @Service
 public class AiChatService {
     private final AiClientFactory clientFactory;

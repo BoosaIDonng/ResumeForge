@@ -8,6 +8,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * @deprecated Use {@link com.example.airesume.ai.tools.ToolChatController} instead.
+ * This basic chat has no tool execution capability.
+ */
+@Deprecated
 @RestController
 @RequestMapping("/api/ai")
 public class AiChatController {

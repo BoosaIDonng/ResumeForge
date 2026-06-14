@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.springframework.stereotype.Service;
 
+/**
+ * @deprecated Use {@link com.example.airesume.ai.tools.ToolChatStreamService} instead.
+ * This service defines tools but never executes them during streaming.
+ */
+@Deprecated
 @Service
 public class ChatStreamService {
     private final AiProperties properties;
