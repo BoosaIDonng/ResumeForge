@@ -1,6 +1,7 @@
 package com.example.airesume.ai.grammar;
 
 import com.example.airesume.common.ApiResponse;
+import com.example.airesume.task.AiTaskEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,6 +36,14 @@ public class AiGrammarController {
         );
         return ApiResponse.ok(response);
     }
+
+    @PostMapping("/grammar-check/async")
+    public ApiResponse<TaskRef> grammarCheckAsync(@Valid @RequestBody GrammarCheckRequest request) {
+        AiTaskEntity task = grammarService.submitAsync(request.resumeId());
+        return ApiResponse.ok(new TaskRef(task.getId(), task.getStatus()));
+    }
+
+    record TaskRef(Long taskId, String status) {}
 
     @PostMapping("/grammar-check/apply")
     public ApiResponse<GrammarApplyResponse> applyFixes(@Valid @RequestBody GrammarApplyRequest request) {

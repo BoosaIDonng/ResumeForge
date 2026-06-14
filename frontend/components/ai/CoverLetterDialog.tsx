@@ -66,17 +66,22 @@ export default function CoverLetterDialog({ onClose }: Props) {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20";
+    "w-full border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:bg-card focus:outline-none";
+
+  const hasResult = loading || coverLetter.length > 0;
+  const dialogSize = hasResult
+    ? "sm:max-w-[800px] w-[95vw]"
+    : "sm:max-w-[480px]";
 
   return (
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] gap-0 overflow-hidden flex flex-col">
+      <DialogContent className={`${dialogSize} max-h-[90vh] gap-0 overflow-hidden flex flex-col`}>
         <DialogHeader className="border-b border-border px-5 py-4 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Mail className="size-4" /> AI 生成求职信
           </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+        <div className={`flex-1 min-h-0 overflow-y-auto ${hasResult ? "p-5 space-y-4" : "p-4"}`}>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
               职位描述 <span className="text-destructive">*</span>

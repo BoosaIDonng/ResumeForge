@@ -66,10 +66,10 @@ export default function SectionOptimizeButton({ sectionType, currentContent, onA
   return (
     <>
       <Button
-        variant="ghost"
+        variant="outline"
         size="xs"
         onClick={() => setOpen(true)}
-        className="text-accent hover:text-accent/90 hover:bg-accent/10"
+        className="border-primary/30 text-primary hover:bg-primary/10"
       >
         <Sparkles className="size-3" />
         <span>AI优化</span>

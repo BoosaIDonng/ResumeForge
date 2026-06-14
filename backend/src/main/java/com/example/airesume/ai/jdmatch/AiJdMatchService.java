@@ -9,8 +9,12 @@ import com.example.airesume.ai.refine.KeywordMatcher;
 import com.example.airesume.analysis.AnalysisReportEntity;
 import com.example.airesume.analysis.AnalysisReportRepository;
 import com.example.airesume.common.ApiException;
+import com.example.airesume.job.JobService;
 import com.example.airesume.resume.ResumeEntity;
 import com.example.airesume.resume.ResumeRepository;
+import com.example.airesume.task.AiTaskEntity;
+import com.example.airesume.task.TaskService;
+import com.example.airesume.task.TaskType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -41,11 +45,14 @@ public class AiJdMatchService {
     private final ObjectMapper objectMapper;
     private final KeywordMatcher keywordMatcher;
     private final AiPhraseRemover phraseRemover;
+    private final JobService jobService;
+    private final TaskService taskService;
 
     public AiJdMatchService(AiClientFactory clientFactory, JsonResponseParser jsonParser,
                             ResumeRepository resumeRepository, AnalysisReportRepository reportRepository,
                             ObjectMapper objectMapper, KeywordMatcher keywordMatcher,
-                            AiPhraseRemover phraseRemover) {
+                            AiPhraseRemover phraseRemover, JobService jobService,
+                            TaskService taskService) {
         this.clientFactory = clientFactory;
         this.jsonParser = jsonParser;
         this.resumeRepository = resumeRepository;
@@ -53,6 +60,8 @@ public class AiJdMatchService {
         this.objectMapper = objectMapper;
         this.keywordMatcher = keywordMatcher;
         this.phraseRemover = phraseRemover;
+        this.jobService = jobService;
+        this.taskService = taskService;
     }
 
     public JdMatchResponse match(String provider, String apiKey, String baseUrl, String model,
@@ -265,6 +274,16 @@ public class AiJdMatchService {
         } catch (Exception e) {
             throw new ApiException("REPORT_SAVE_ERROR", "分析报告保存失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * Submit a JD analysis as an async task.
+     * Creates a temporary Job entity from the raw JD text so the worker can load it by jobId.
+     */
+    public AiTaskEntity submitAsync(Long resumeId, String jobDescription) {
+        // Create a temporary Job from the JD text so handleJdAnalysis can load it
+        var job = jobService.create(resumeId, "临时分析", "", jobDescription);
+        return taskService.create(TaskType.JD_ANALYSIS, resumeId, job.getId());
     }
 
     /**

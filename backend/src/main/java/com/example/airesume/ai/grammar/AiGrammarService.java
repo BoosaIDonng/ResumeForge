@@ -8,6 +8,9 @@ import com.example.airesume.common.ApiException;
 import com.example.airesume.resume.ResumeEntity;
 import com.example.airesume.resume.ResumeRepository;
 import com.example.airesume.resume.ResumeService;
+import com.example.airesume.task.AiTaskEntity;
+import com.example.airesume.task.TaskService;
+import com.example.airesume.task.TaskType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -22,16 +25,19 @@ public class AiGrammarService {
     private final ResumeService resumeService;
     private final GrammarCheckHistoryRepository historyRepository;
     private final ObjectMapper objectMapper;
+    private final TaskService taskService;
 
     public AiGrammarService(AiClientFactory clientFactory, JsonResponseParser jsonParser,
                             ResumeRepository resumeRepository, ResumeService resumeService,
-                            GrammarCheckHistoryRepository historyRepository, ObjectMapper objectMapper) {
+                            GrammarCheckHistoryRepository historyRepository, ObjectMapper objectMapper,
+                            TaskService taskService) {
         this.clientFactory = clientFactory;
         this.jsonParser = jsonParser;
         this.resumeRepository = resumeRepository;
         this.resumeService = resumeService;
         this.historyRepository = historyRepository;
         this.objectMapper = objectMapper;
+        this.taskService = taskService;
     }
 
     public GrammarCheckResponse check(String provider, String apiKey, String baseUrl, String model, Long resumeId) {
@@ -83,6 +89,10 @@ public class AiGrammarService {
         }
 
         return result;
+    }
+
+    public AiTaskEntity submitAsync(Long resumeId) {
+        return taskService.create(TaskType.GRAMMAR_CHECK, resumeId, null);
     }
 
     public List<GrammarCheckHistoryEntity> getHistory(Long resumeId) {
