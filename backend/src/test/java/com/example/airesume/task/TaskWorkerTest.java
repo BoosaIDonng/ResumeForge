@@ -7,7 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.airesume.ai.AiCallLogRepository;
 import com.example.airesume.ai.AiClient;
+import com.example.airesume.ai.AiProperties;
 import com.example.airesume.ai.JsonResponseParser;
 import com.example.airesume.ai.PromptType;
 import com.example.airesume.analysis.AnalysisReportEntity;
@@ -32,8 +34,6 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 
 class TaskWorkerTest {
 
@@ -51,7 +51,9 @@ class TaskWorkerTest {
     private InterviewQuestionRepository interviewQuestionRepository;
     private InterviewFeedbackRepository interviewFeedbackRepository;
     private CoverLetterRepository coverLetterRepository;
-    private StringRedisTemplate redisTemplate;
+    private AiCallLogRepository aiCallLogRepository;
+    private AiProperties aiProperties;
+    private ProgressTracker progressTracker;
     private ObjectMapper objectMapper;
     private TaskWorker worker;
 
@@ -71,11 +73,10 @@ class TaskWorkerTest {
         interviewQuestionRepository = mock(InterviewQuestionRepository.class);
         interviewFeedbackRepository = mock(InterviewFeedbackRepository.class);
         coverLetterRepository = mock(CoverLetterRepository.class);
-        redisTemplate = mock(StringRedisTemplate.class);
+        aiCallLogRepository = mock(AiCallLogRepository.class);
+        aiProperties = new AiProperties();
+        progressTracker = mock(ProgressTracker.class);
         objectMapper = new ObjectMapper();
-
-        ValueOperations<String, String> valueOps = mock(ValueOperations.class);
-        when(redisTemplate.opsForValue()).thenReturn(valueOps);
 
         worker = new TaskWorker(
             taskRepository, resumeService, jobService, aiClient, jsonParser,
@@ -83,7 +84,8 @@ class TaskWorkerTest {
             analysisReportRepository, optimizationProposalRepository,
             interviewSessionRepository, interviewQuestionRepository,
             interviewFeedbackRepository, coverLetterRepository,
-            redisTemplate, objectMapper
+            aiCallLogRepository, aiProperties,
+            progressTracker, objectMapper
         );
     }
 

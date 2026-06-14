@@ -48,7 +48,7 @@ class PdfExportControllerTest {
         when(resume.getResumeData()).thenReturn("{\"basics\":{\"name\":\"测试\"}}");
         when(resume.getTitle()).thenReturn("我的简历");
         when(resumeService.get(1L)).thenReturn(resume);
-        when(pdfExportService.generatePdf("{\"basics\":{\"name\":\"测试\"}}", TemplateType.CLEAN, false))
+        when(pdfExportService.generatePdf("{\"basics\":{\"name\":\"测试\"}}", TemplateType.CLEAN, false, false))
             .thenReturn(new byte[]{0x25, 0x50, 0x44, 0x46}); // %PDF
 
         mockMvc.perform(get("/api/resumes/1/export/pdf"))
@@ -63,7 +63,7 @@ class PdfExportControllerTest {
         when(resume.getResumeData()).thenReturn("{}");
         when(resume.getTitle()).thenReturn("简历");
         when(resumeService.get(1L)).thenReturn(resume);
-        when(pdfExportService.generatePdf("{}", TemplateType.MODERN, true))
+        when(pdfExportService.generatePdf("{}", TemplateType.MODERN, true, false))
             .thenReturn(new byte[]{0x25, 0x50, 0x44, 0x46});
 
         mockMvc.perform(get("/api/resumes/1/export/pdf?template=modern&refine=true"))
@@ -77,7 +77,7 @@ class PdfExportControllerTest {
         when(resume.getResumeData()).thenReturn("{}");
         when(resume.getTitle()).thenReturn(null);
         when(resumeService.get(1L)).thenReturn(resume);
-        when(pdfExportService.generatePdf("{}", TemplateType.CLEAN, false))
+        when(pdfExportService.generatePdf("{}", TemplateType.CLEAN, false, false))
             .thenReturn(new byte[]{0x25, 0x50, 0x44, 0x46});
 
         mockMvc.perform(get("/api/resumes/1/export/pdf"))

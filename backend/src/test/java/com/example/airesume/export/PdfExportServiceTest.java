@@ -49,7 +49,7 @@ class PdfExportServiceTest {
             }
             """;
 
-        byte[] pdf = service.generatePdf(resumeJson, TemplateType.CLEAN, false);
+        byte[] pdf = service.generatePdf(resumeJson, TemplateType.CLEAN, false, false);
         assertThat(pdf).isNotEmpty();
         assertThat(pdf[0]).isEqualTo((byte) '%');
         assertThat(pdf[1]).isEqualTo((byte) 'P');

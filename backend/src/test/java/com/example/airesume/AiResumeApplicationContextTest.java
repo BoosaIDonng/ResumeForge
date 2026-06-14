@@ -2,16 +2,21 @@ package com.example.airesume;
 
 import com.example.airesume.ai.AiCallLogRepository;
 import com.example.airesume.ai.AiClient;
+import com.example.airesume.ai.grammar.GrammarCheckHistoryRepository;
 import com.example.airesume.analysis.AnalysisReportRepository;
+import com.example.airesume.application.ApplicationRepository;
 import com.example.airesume.coverletter.CoverLetterPromptBuilder;
 import com.example.airesume.coverletter.CoverLetterRepository;
 import com.example.airesume.interview.InterviewFeedbackRepository;
+import com.example.airesume.interview.InterviewMessageRepository;
 import com.example.airesume.interview.InterviewQuestionRepository;
 import com.example.airesume.interview.InterviewSessionRepository;
 import com.example.airesume.job.JobRepository;
 import com.example.airesume.optimization.OptimizationProposalRepository;
 import com.example.airesume.resume.ResumeRepository;
+import com.example.airesume.share.ShareRepository;
 import com.example.airesume.task.AiTaskRepository;
+import com.example.airesume.version.VersionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,6 +40,9 @@ class AiResumeApplicationContextTest {
     private AiTaskRepository aiTaskRepository;
 
     @MockBean
+    private ApplicationRepository applicationRepository;
+
+    @MockBean
     private RabbitTemplate rabbitTemplate;
 
     @MockBean
@@ -50,6 +58,9 @@ class AiResumeApplicationContextTest {
     private AiClient aiClient;
 
     @MockBean
+    private GrammarCheckHistoryRepository grammarCheckHistoryRepository;
+
+    @MockBean
     private OptimizationProposalRepository optimizationProposalRepository;
 
     @MockBean
@@ -62,10 +73,19 @@ class AiResumeApplicationContextTest {
     private InterviewFeedbackRepository interviewFeedbackRepository;
 
     @MockBean
+    private InterviewMessageRepository interviewMessageRepository;
+
+    @MockBean
     private CoverLetterRepository coverLetterRepository;
 
     @MockBean
     private CoverLetterPromptBuilder coverLetterPromptBuilder;
+
+    @MockBean
+    private ShareRepository shareRepository;
+
+    @MockBean
+    private VersionRepository versionRepository;
 
     @Test
     void contextLoads() {

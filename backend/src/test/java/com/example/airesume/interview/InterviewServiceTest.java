@@ -21,6 +21,7 @@ class InterviewServiceTest {
     private InterviewSessionRepository sessionRepository;
     private InterviewQuestionRepository questionRepository;
     private InterviewFeedbackRepository feedbackRepository;
+    private InterviewMessageRepository messageRepository;
     private TaskService taskService;
     private InterviewService service;
 
@@ -29,8 +30,9 @@ class InterviewServiceTest {
         sessionRepository = mock(InterviewSessionRepository.class);
         questionRepository = mock(InterviewQuestionRepository.class);
         feedbackRepository = mock(InterviewFeedbackRepository.class);
+        messageRepository = mock(InterviewMessageRepository.class);
         taskService = mock(TaskService.class);
-        service = new InterviewService(sessionRepository, questionRepository, feedbackRepository, taskService);
+        service = new InterviewService(sessionRepository, questionRepository, feedbackRepository, messageRepository, taskService);
     }
 
     @Test
@@ -113,7 +115,7 @@ class InterviewServiceTest {
         InterviewSessionEntity session = new InterviewSessionEntity(10L, 20L, "后端", "中级", "技术面", null);
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
         AiTaskEntity task = new AiTaskEntity(TaskType.INTERVIEW_QUESTION_GENERATION.name(), 10L, 20L);
-        when(taskService.create(TaskType.INTERVIEW_QUESTION_GENERATION, 10L, 20L)).thenReturn(task);
+        when(taskService.createWithSession(TaskType.INTERVIEW_QUESTION_GENERATION, 10L, 20L, 1L)).thenReturn(task);
 
         AiTaskEntity result = service.submitQuestionGeneration(1L);
 
@@ -125,7 +127,7 @@ class InterviewServiceTest {
         InterviewSessionEntity session = new InterviewSessionEntity(10L, 20L, "后端", "高级", "技术面", null);
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
         AiTaskEntity task = new AiTaskEntity(TaskType.INTERVIEW_FEEDBACK.name(), 10L, 20L);
-        when(taskService.create(TaskType.INTERVIEW_FEEDBACK, 10L, 20L)).thenReturn(task);
+        when(taskService.createWithSession(TaskType.INTERVIEW_FEEDBACK, 10L, 20L, 1L)).thenReturn(task);
 
         AiTaskEntity result = service.submitFeedback(1L);
 

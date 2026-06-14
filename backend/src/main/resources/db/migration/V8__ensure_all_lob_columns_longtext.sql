@@ -1,0 +1,21 @@
+-- Ensure all @Lob columns are LONGTEXT to match entity columnDefinition annotations
+ALTER TABLE resumes MODIFY COLUMN resume_data LONGTEXT NOT NULL;
+ALTER TABLE jobs MODIFY COLUMN description LONGTEXT NOT NULL;
+ALTER TABLE jobs MODIFY COLUMN extracted_keywords LONGTEXT NULL;
+ALTER TABLE ai_tasks MODIFY COLUMN error_message LONGTEXT NULL;
+ALTER TABLE analysis_reports MODIFY COLUMN keyword_matches LONGTEXT NOT NULL;
+ALTER TABLE analysis_reports MODIFY COLUMN missing_keywords LONGTEXT NOT NULL;
+ALTER TABLE analysis_reports MODIFY COLUMN suggestions LONGTEXT NOT NULL;
+ALTER TABLE analysis_reports MODIFY COLUMN summary LONGTEXT NOT NULL;
+ALTER TABLE optimization_proposals MODIFY COLUMN changes LONGTEXT NOT NULL;
+ALTER TABLE optimization_proposals MODIFY COLUMN applied_changes LONGTEXT NOT NULL;
+ALTER TABLE optimization_proposals MODIFY COLUMN rejected_changes LONGTEXT NOT NULL;
+ALTER TABLE optimization_proposals MODIFY COLUMN preview LONGTEXT NOT NULL;
+ALTER TABLE interview_questions MODIFY COLUMN question LONGTEXT NOT NULL;
+ALTER TABLE interview_questions MODIFY COLUMN answer LONGTEXT NULL;
+ALTER TABLE interview_feedback MODIFY COLUMN category_scores LONGTEXT NOT NULL;
+ALTER TABLE interview_feedback MODIFY COLUMN strengths LONGTEXT NOT NULL;
+ALTER TABLE interview_feedback MODIFY COLUMN areas_for_improvement LONGTEXT NOT NULL;
+ALTER TABLE interview_feedback MODIFY COLUMN final_assessment LONGTEXT NOT NULL;
+ALTER TABLE interview_feedback MODIFY COLUMN improvement_plan LONGTEXT NULL;
+ALTER TABLE ai_call_logs MODIFY COLUMN error_message LONGTEXT NULL;

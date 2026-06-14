@@ -1,0 +1,1 @@
+ALTER TABLE grammar_check_history MODIFY result LONGTEXT;

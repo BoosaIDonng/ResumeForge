@@ -1,6 +1,7 @@
 package com.example.airesume.interview;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -42,11 +43,17 @@ class InterviewControllerTest {
     @MockBean
     private InterviewService interviewService;
 
+    @MockBean
+    private InterviewChatService interviewChatService;
+
+    @MockBean
+    private InterviewSessionRepository sessionRepository;
+
     @Test
     void createInterview_shouldReturnSessionAndTaskId() throws Exception {
         InterviewSessionEntity session = new InterviewSessionEntity(1L, 2L, "Java后端", "中级", "技术面", "TECHNICAL");
         AiTaskEntity task = new AiTaskEntity(TaskType.INTERVIEW_QUESTION_GENERATION.name(), 1L, 2L);
-        when(interviewService.createSession(1L, 2L, "Java后端", "中级", "技术面", "TECHNICAL")).thenReturn(session);
+        when(interviewService.createSession(any(), any(), any(), any(), any(), any(), any(), anyInt())).thenReturn(session);
         when(interviewService.submitQuestionGeneration(any())).thenReturn(task);
 
         mockMvc.perform(post("/api/interviews")
