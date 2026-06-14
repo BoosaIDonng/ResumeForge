@@ -22,12 +22,13 @@ public class PdfExportController {
     public ResponseEntity<byte[]> exportPdf(
             @PathVariable Long id,
             @RequestParam(defaultValue = "clean") String template,
-            @RequestParam(defaultValue = "false") boolean refine) {
+            @RequestParam(defaultValue = "false") boolean refine,
+            @RequestParam(defaultValue = "false") boolean fitOnePage) {
 
         ResumeEntity resume = resumeService.get(id);
         TemplateType templateType = TemplateType.fromString(template);
 
-        byte[] pdf = pdfExportService.generatePdf(resume.getResumeData(), templateType, refine);
+        byte[] pdf = pdfExportService.generatePdf(resume.getResumeData(), templateType, refine, fitOnePage);
 
         String filename = (resume.getTitle() != null ? resume.getTitle() : "resume") + ".pdf";
 

@@ -12,6 +12,18 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.StringReader;
+import java.io.StringWriter;
 
 @Service
 public class PdfExportService {
@@ -25,7 +37,7 @@ public class PdfExportService {
         this.phraseRefiner = phraseRefiner;
     }
 
-    public byte[] generatePdf(String resumeDataJson, TemplateType template, boolean refine) {
+    public byte[] generatePdf(String resumeDataJson, TemplateType template, boolean refine, boolean fitOnePage) {
         Map<String, Object> data = parseResumeData(resumeDataJson);
 
         if (refine) {
@@ -33,7 +45,100 @@ public class PdfExportService {
         }
 
         String html = renderHtml(data, template);
+
+        if (fitOnePage) {
+            html = compressToOnePage(html);
+        }
+
         return htmlToPdf(html);
+    }
+
+    private String compressToOnePage(String html) {
+        double[] scaleFactors = {0.95, 0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50};
+
+        for (double factor : scaleFactors) {
+            String scaledHtml = applyScaleFactor(html, factor);
+            byte[] pdf = htmlToPdf(scaledHtml);
+            if (isOnePage(pdf)) {
+                return scaledHtml;
+            }
+        }
+
+        return applyScaleFactor(html, 0.50);
+    }
+
+    private String applyScaleFactor(String html, double factor) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(false);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(html)));
+
+            Element body = doc.getDocumentElement();
+            scaleElement(body, factor);
+
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(doc), new StreamResult(writer));
+            return writer.toString();
+        } catch (Exception e) {
+            return html;
+        }
+    }
+
+    private void scaleElement(Element element, double factor) {
+        if (element.hasAttribute("style")) {
+            String style = element.getAttribute("style");
+            style = scaleFontSize(style, factor);
+            element.setAttribute("style", style);
+        }
+
+        NodeList children = element.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            if (children.item(i) instanceof Element child) {
+                scaleElement(child, factor);
+            }
+        }
+    }
+
+    private String scaleFontSize(String style, double factor) {
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("font-size:\\s*([0-9.]+)(pt|px|em|rem)");
+        java.util.regex.Matcher matcher = pattern.matcher(style);
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            double size = Double.parseDouble(matcher.group(1));
+            String unit = matcher.group(2);
+            double newSize = Math.round(size * factor * 10.0) / 10.0;
+            if (newSize < 5.0) newSize = 5.0;
+            matcher.appendReplacement(sb, "font-size:" + newSize + unit);
+        }
+        matcher.appendTail(sb);
+
+        java.util.regex.Pattern lineHeightPattern = java.util.regex.Pattern.compile("line-height:\\s*([0-9.]+)");
+        java.util.regex.Matcher lhMatcher = lineHeightPattern.matcher(sb.toString());
+        StringBuffer lhSb = new StringBuffer();
+        while (lhMatcher.find()) {
+            double lh = Double.parseDouble(lhMatcher.group(1));
+            double newLh = Math.round(lh * (factor + (1 - factor) * 0.5) * 100.0) / 100.0;
+            if (newLh < 1.0) newLh = 1.0;
+            lhMatcher.appendReplacement(lhSb, "line-height:" + newLh);
+        }
+        lhMatcher.appendTail(lhSb);
+
+        return lhSb.toString();
+    }
+
+    private boolean isOnePage(byte[] pdf) {
+        try {
+            org.apache.pdfbox.pdmodel.PDDocument document = org.apache.pdfbox.pdmodel.PDDocument.load(pdf);
+            int pages = document.getNumberOfPages();
+            document.close();
+            return pages <= 1;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private Map<String, Object> parseResumeData(String json) {

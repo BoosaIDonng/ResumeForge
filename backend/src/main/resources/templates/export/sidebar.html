@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>简历</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'SimHei', sans-serif; font-size: 9.5pt; line-height: 1.5; color: #2d2d2d; display: flex; }
+        .sidebar { width: 70mm; background-color: #2c3e50; color: #ecf0f1; padding: 20pt 14pt; min-height: 297mm; }
+        .sidebar h1 { font-size: 18pt; font-weight: 700; margin-bottom: 6pt; }
+        .sidebar .headline { font-size: 9.5pt; color: #bdc3c7; margin-bottom: 12pt; }
+        .sidebar h2 { font-size: 10pt; font-weight: 700; color: #3498db; margin: 12pt 0 5pt 0; text-transform: uppercase; letter-spacing: 1pt; }
+        .sidebar .contact-item { font-size: 8.5pt; color: #ddd; margin-bottom: 3pt; }
+        .sidebar .skill-group { margin-bottom: 4pt; font-size: 8.5pt; color: #ddd; }
+        .sidebar .skill-name { font-weight: 600; color: #3498db; }
+        .main { flex: 1; padding: 20pt 18pt; }
+        h2.main-h2 { font-size: 12pt; font-weight: 700; color: #2c3e50; margin: 12pt 0 6pt 0; padding-bottom: 3pt; border-bottom: 2px solid #3498db; }
+        h3 { font-size: 10pt; font-weight: 600; color: #2c3e50; margin-bottom: 2pt; }
+        .summary { margin-bottom: 10pt; font-size: 9.5pt; color: #444; line-height: 1.6; }
+        .section { margin-bottom: 10pt; }
+        .item { margin-bottom: 8pt; }
+        .item-meta { font-size: 8.5pt; color: #888; margin-bottom: 1pt; }
+        .item-desc { font-size: 9pt; color: #444; margin-top: 2pt; }
+        .sidebar-edu { margin-bottom: 6pt; }
+        .sidebar-edu-title { font-size: 9pt; font-weight: 600; color: #ecf0f1; }
+        .sidebar-edu-meta { font-size: 8pt; color: #bdc3c7; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1 th:if="${resume['basics'] != null}" th:text="${resume['basics']['name']}"></h1>
+        <div class="headline" th:if="${resume['basics'] != null and resume['basics']['headline'] != null}" th:text="${resume['basics']['headline']}"></div>
+
+        <h2>联系方式</h2>
+        <div class="contact-item" th:if="${resume['basics'] != null and resume['basics']['email'] != null and !resume['basics']['email'].isEmpty()}" th:text="${resume['basics']['email']}"></div>
+        <div class="contact-item" th:if="${resume['basics'] != null and resume['basics']['phone'] != null and !resume['basics']['phone'].isEmpty()}" th:text="${resume['basics']['phone']}"></div>
+        <div class="contact-item" th:if="${resume['basics'] != null and resume['basics']['location'] != null and !resume['basics']['location'].isEmpty()}" th:text="${resume['basics']['location']}"></div>
+
+        <div th:if="${resume['sections'] != null and resume['sections']['education'] != null and resume['sections']['education']['items'] != null}">
+            <h2 th:text="${resume['sections']['education']['name'] != null} ? ${resume['sections']['education']['name']} : '教育经历'">教育经历</h2>
+            <div class="sidebar-edu" th:each="item : ${resume['sections']['education']['items']}">
+                <div class="sidebar-edu-title" th:text="${item['institution'] != null ? item['institution'] : ''}"></div>
+                <div class="sidebar-edu-meta" th:text="${(item['studyType'] != null ? item['studyType'] : '') + (item['area'] != null ? ' · ' + item['area'] : '')}"></div>
+                <div class="sidebar-edu-meta" th:if="${item['startDate'] != null}" th:text="${item['startDate'] + (item['endDate'] != null and !item['endDate'].isEmpty() ? ' - ' + item['endDate'] : '')}"></div>
+            </div>
+        </div>
+
+        <div th:if="${resume['sections'] != null and resume['sections']['skills'] != null and resume['sections']['skills']['items'] != null}">
+            <h2 th:text="${resume['sections']['skills']['name'] != null} ? ${resume['sections']['skills']['name']} : '技能'">技能</h2>
+            <div class="skill-group" th:each="item : ${resume['sections']['skills']['items']}">
+                <span class="skill-name" th:text="${item['name'] != null ? item['name'] + '：' : ''}"></span>
+                <span th:if="${item['keywords'] != null}" th:text="${#strings.listJoin(item['keywords'], ', ')}"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="summary" th:if="${resume['summary'] != null and resume['summary']['content'] != null and !resume['summary']['content'].isEmpty()}">
+            <h2 class="main-h2">个人总结</h2>
+            <p th:text="${resume['summary']['content']}"></p>
+        </div>
+
+        <div class="section" th:if="${resume['sections'] != null and resume['sections']['experience'] != null and resume['sections']['experience']['items'] != null}">
+            <h2 class="main-h2" th:text="${resume['sections']['experience']['name'] != null} ? ${resume['sections']['experience']['name']} : '工作经历'">工作经历</h2>
+            <div class="item" th:each="item : ${resume['sections']['experience']['items']}">
+                <h3 th:text="${item['position'] != null ? item['position'] : ''}"></h3>
+                <div class="item-meta" th:text="${(item['company'] != null ? item['company'] : '') + (item['startDate'] != null ? ' | ' + item['startDate'] + (item['endDate'] != null and !item['endDate'].isEmpty() ? ' - ' + item['endDate'] : ' - 至今') : '')}"></div>
+                <div class="item-desc" th:if="${item['summary'] != null and !item['summary'].isEmpty()}" th:text="${item['summary']}"></div>
+            </div>
+        </div>
+
+        <div class="section" th:if="${resume['sections'] != null and resume['sections']['projects'] != null and resume['sections']['projects']['items'] != null}">
+            <h2 class="main-h2" th:text="${resume['sections']['projects']['name'] != null} ? ${resume['sections']['projects']['name']} : '项目经历'">项目经历</h2>
+            <div class="item" th:each="item : ${resume['sections']['projects']['items']}">
+                <h3 th:text="${item['name'] != null ? item['name'] : ''}"></h3>
+                <div class="item-meta" th:if="${item['startDate'] != null}" th:text="${item['startDate'] + (item['endDate'] != null and !item['endDate'].isEmpty() ? ' - ' + item['endDate'] : '')}"></div>
+                <div class="item-desc" th:if="${item['description'] != null and !item['description'].isEmpty()}" th:text="${item['description']}"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
