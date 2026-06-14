@@ -121,7 +121,7 @@ export default function ResumeListItem({ resume, index, onRename, onCopy, onShar
           <MoreVertical className="h-4 w-4" />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-full z-20 mt-1 w-28 border border-border bg-card py-0.5 shadow-md">
+          <div className="absolute right-0 top-full z-20 mt-1 w-28 border border-border bg-card py-0.5">
             <MenuItem label="重命名" onClick={() => { setMenuOpen(false); setEditing(true); }} />
             <MenuItem label="复制" onClick={() => { setMenuOpen(false); onCopy(resume.id); }} />
             <MenuItem label="分享" onClick={() => { setMenuOpen(false); onShare(resume.id); }} />

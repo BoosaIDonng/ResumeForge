@@ -128,7 +128,7 @@ export default function TourOverlay() {
 
       {/* Tooltip */}
       <div
-        className="absolute z-10 w-72 rounded-xl border border-border bg-card p-4 shadow-xl"
+        className="absolute z-10 w-72 rounded-xl border border-border bg-card p-4"
         style={{
           top: tooltipTop,
           left: Math.min(
@@ -156,7 +156,7 @@ export default function TourOverlay() {
         </p>
         <button
           onClick={handleNext}
-          className="mt-3 w-full rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
+          className="mt-3 w-full rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
         >
           {step < steps.length - 1 ? "下一步" : "完成"}
         </button>

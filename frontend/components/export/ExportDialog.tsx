@@ -129,7 +129,7 @@ export default function ExportDialog({ resumeId, open, onClose }: Props) {
               }`}
             >
               <span
-                className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                className={`pointer-events-none block h-4 w-4 rounded-full bg-background ring-0 transition-transform ${
                   fitOnePage ? "translate-x-4" : "translate-x-0"
                 }`}
               />

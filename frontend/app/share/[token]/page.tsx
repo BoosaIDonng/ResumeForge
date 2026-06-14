@@ -80,7 +80,7 @@ export default function ShareViewPage() {
   if (passwordRequired) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
+        <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6">
           <div className="flex justify-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <Lock className="h-6 w-6 text-primary" />
@@ -104,7 +104,7 @@ export default function ShareViewPage() {
             <button
               type="submit"
               disabled={verifying || !password.trim()}
-              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
             >
               {verifying ? "验证中..." : "访问"}
             </button>
@@ -129,7 +129,7 @@ export default function ShareViewPage() {
         </div>
       </header>
       <main className="mx-auto max-w-4xl px-4 py-8">
-        <div className="rounded-lg shadow-lg">
+        <div className="rounded-lg">
           <ResumePreview data={resumeData} />
         </div>
       </main>

@@ -119,7 +119,7 @@ function SidebarItem({
         'group flex items-center gap-2 px-2 py-2 mx-1 rounded-lg cursor-pointer transition-all',
         'border-t-2',
         isActive
-          ? 'bg-primary/5 text-primary shadow-sm border-primary/10'
+          ? 'bg-primary/5 text-primary border-primary/10'
           : 'text-muted-foreground hover:bg-muted/50 border-transparent',
         isDragOver && 'border-primary/80 bg-primary/5'
       )}

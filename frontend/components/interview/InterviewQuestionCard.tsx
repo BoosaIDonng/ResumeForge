@@ -31,7 +31,7 @@ export function InterviewQuestionCard({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-6">
       <div className="flex items-center gap-3 mb-4">
         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold">
           {index + 1}

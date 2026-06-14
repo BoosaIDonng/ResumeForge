@@ -150,7 +150,7 @@ export default function ResumeCard({ resume, index, onRename, onCopy, onShare, o
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 bottom-full z-20 mb-1 w-28 border border-border bg-card py-0.5 shadow-md">
+              <div className="absolute right-0 bottom-full z-20 mb-1 w-28 border border-border bg-card py-0.5">
                 <MenuItem label="重命名" onClick={() => { setMenuOpen(false); setEditing(true); }} />
                 <MenuItem label="删除" danger onClick={() => { setMenuOpen(false); onDelete(resume.id); }} />
               </div>
