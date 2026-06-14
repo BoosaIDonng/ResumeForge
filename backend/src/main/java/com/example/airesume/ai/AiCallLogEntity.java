@@ -1,5 +1,6 @@
 package com.example.airesume.ai;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -24,6 +25,7 @@ public class AiCallLogEntity {
     private String status;
 
     @Lob
+    @Column(columnDefinition = "longtext")
     private String errorMessage;
 
     private LocalDateTime createdAt;

@@ -9,6 +9,8 @@ public class AiProperties {
     private String baseUrl;
     private String apiKey;
     private String model;
+    private double temperature = 0.2;
+    private Integer maxTokens;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -32,5 +34,21 @@ public class AiProperties {
 
     public void setModel(String model) {
         this.model = model;
+    }
+
+    public double getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(double temperature) {
+        this.temperature = temperature;
+    }
+
+    public Integer getMaxTokens() {
+        return maxTokens;
+    }
+
+    public void setMaxTokens(Integer maxTokens) {
+        this.maxTokens = maxTokens;
     }
 }
