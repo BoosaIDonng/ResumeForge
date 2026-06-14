@@ -17,6 +17,8 @@ public class AnalysisReportEntity {
     private Long id;
 
     private Long resumeId;
+
+    @Column(nullable = true)
     private Long jobId;
     private int overallScore;
     private int atsScore;
