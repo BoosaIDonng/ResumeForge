@@ -75,6 +75,54 @@ export async function toolChat(
   return data.data;
 }
 
+/**
+ * Streaming tool-chat via SSE. Returns an async generator of events.
+ */
+export async function* toolChatStream(
+  resumeId: number,
+  message: string,
+  history?: { role: string; content: string }[]
+): AsyncGenerator<Record<string, unknown>> {
+  const res = await fetch(`${BASE}/api/ai/tool-chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAIHeaders() },
+    body: JSON.stringify({ resumeId, message, history }),
+  });
+  if (!res.ok) throw new Error(`AI 聊天失败 (${res.status})`);
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // Parse SSE lines
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? ''; // Keep incomplete line in buffer
+
+    for (const line of lines) {
+      if (line.startsWith('data:')) {
+        const data = line.slice(5).trim();
+        if (!data) continue;
+        try {
+          yield JSON.parse(data);
+        } catch { /* skip malformed events */ }
+      }
+    }
+  }
+
+  // Process any remaining buffer
+  if (buffer.startsWith('data:')) {
+    const data = buffer.slice(5).trim();
+    if (data) {
+      try { yield JSON.parse(data); } catch { /* skip */ }
+    }
+  }
+}
+
 // ============================================================
 // Quality Score
 // ============================================================
@@ -160,6 +208,64 @@ export async function importDocx(file: File): Promise<{ id: number; title: strin
     body: formData,
   });
   if (!res.ok) throw new Error(`DOCX 导入失败 (${res.status})`);
+  const data = await res.json();
+  return data.data;
+}
+
+// ============================================================
+// Diff Apply (structured suggestion application)
+// ============================================================
+
+export interface DiffApplyChange {
+  path: string;
+  action: string;
+  original: string;
+  value: string;
+  reason: string;
+}
+
+export interface DiffApplyResult {
+  applied: { path: string; action: string }[];
+  rejected: { path: string; reason: string }[];
+  warnings: { path: string; message: string }[];
+}
+
+export async function applyDiff(resumeId: number, changes: DiffApplyChange[]): Promise<DiffApplyResult> {
+  const res = await fetch(`${BASE}/api/ai/diff/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAIHeaders() },
+    body: JSON.stringify({ resumeId, changes }),
+  });
+  if (!res.ok) throw new Error(`应用失败 (${res.status})`);
+  const data = await res.json();
+  return data.data;
+}
+
+// ============================================================
+// Enrichment Regeneration
+// ============================================================
+
+export interface EnrichmentRegenerateRequest {
+  itemType: string;
+  itemId: string;
+  userInstruction: string;
+}
+
+export interface EnrichmentRegenerateResponse {
+  enrichedContent: string;
+  changes: { field: string; before: string; after: string; reason: string }[];
+}
+
+export async function regenerateEnrichment(
+  resumeId: number,
+  req: EnrichmentRegenerateRequest
+): Promise<EnrichmentRegenerateResponse> {
+  const res = await fetch(`${BASE}/api/ai/enrichment/regenerate/${resumeId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAIHeaders() },
+    body: JSON.stringify(req),
+  });
+  if (!res.ok) throw new Error(`重新生成失败 (${res.status})`);
   const data = await res.json();
   return data.data;
 }

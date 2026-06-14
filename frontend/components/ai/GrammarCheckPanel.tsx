@@ -165,56 +165,64 @@ export default function GrammarCheckPanel({ resumeId, resumeData, onClose, onRes
 
   const remainingCount = result ? result.issues.length : 0;
 
+  const hasResult = result !== null || loading;
+  const dialogSize = hasResult
+    ? "sm:max-w-[1600px] w-[95vw]"
+    : "sm:max-w-[480px]";
+
   return (
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="sm:max-w-[1600px] w-[95vw] max-h-[90vh] gap-0 overflow-hidden flex flex-col">
+      <DialogContent className={`${dialogSize} max-h-[90vh] gap-0 overflow-hidden flex flex-col`}>
         <DialogHeader className="border-b border-border px-6 py-5 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <SpellCheck className="size-5" /> 语法与写作检查
           </DialogTitle>
         </DialogHeader>
-        <div className="flex border-b border-border shrink-0">
-          <button
-            onClick={() => setTab("check")}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === "check"
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <SpellCheck className="size-4" /> 检查
-          </button>
-          <button
-            onClick={() => setTab("history")}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === "history"
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <History className="size-4" /> 历史记录
-          </button>
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
-          {tab === "check" && (
+        {/* Tabs — only show when result exists or history is relevant */}
+        {hasResult && (
+          <div className="flex border-b border-border shrink-0">
+            <button
+              onClick={() => setTab("check")}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                tab === "check"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <SpellCheck className="size-4" /> 检查
+            </button>
+            <button
+              onClick={() => setTab("history")}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                tab === "history"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <History className="size-4" /> 历史记录
+            </button>
+          </div>
+        )}
+        <div className={`flex-1 min-h-0 overflow-y-auto ${hasResult ? "p-6 space-y-6" : "p-5"}`}>
+          {(!hasResult || tab === "check") && (
           <>
           {!result && !loading && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <SpellCheck className="size-12 text-muted-foreground mb-4" />
-              <p className="text-base text-muted-foreground mb-5">检查简历中的语法、拼写和写作问题</p>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <SpellCheck className="size-10 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">检查简历中的语法、拼写和写作问题</p>
               <Button onClick={handleCheck} size="lg">开始检查</Button>
             </div>
           )}
 
           {loading && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="size-10 animate-spin text-primary mb-4" />
-              <p className="text-base text-muted-foreground">正在分析简历内容...</p>
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="size-8 animate-spin text-primary mb-3" />
+              <p className="text-sm text-muted-foreground">正在分析简历内容...</p>
             </div>
           )}
 
           {error && (
-            <div className="bg-destructive/10 px-4 py-3 text-base text-destructive">{error}</div>
+            <div className="bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
           )}
 
           {result && (

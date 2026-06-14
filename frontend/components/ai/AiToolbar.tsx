@@ -96,6 +96,10 @@ export default function AiToolbar({ resumeId, resumeData, onResumeUpdated, desig
           resumeId={resumeId}
           resumeData={resumeData}
           onClose={() => setActive(null)}
+          onSendToChat={(message) => {
+            setPendingMessage(message);
+            setActive("chat");
+          }}
         />
       )}
       {active === "grammar" && (

@@ -5,7 +5,7 @@ import { Bot, Send, Trash2, Check, FilePen, Sparkles, Wrench, Plus, type LucideI
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getAIHeaders } from "@/lib/ai-settings";
-import { toolChat, type ToolCallResult, type ToolChatResponse } from "@/lib/ai-api";
+import { toolChat, toolChatStream, type ToolCallResult, type ToolChatResponse } from "@/lib/ai-api";
 
 type Message = {
   role: "user" | "assistant";
@@ -91,15 +91,82 @@ export default function AiChatPanel({ resumeId, open, onOpenChange, onResumeUpda
     setInput("");
     setLoading(true);
 
-    try {
-      let response: ToolChatResponse;
+    // Insert a placeholder assistant message for streaming
+    const assistantPlaceholder: Message = { role: "assistant", content: "", toolCalls: [], resumeModified: false };
+    setMessages([...updated, assistantPlaceholder]);
 
+    try {
       if (resumeId) {
-        // Use tool-calling endpoint when we have a resume
+        // Streaming tool-chat with SSE
         const history = updated.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
-        response = await toolChat(resumeId, text, history);
+        const collectedToolCalls: ToolCallResult[] = [];
+        let resumeWasModified = false;
+        let fullReply = "";
+
+        for await (const event of toolChatStream(resumeId, text, history)) {
+          const evt = event as { type: string; content?: string; tool?: string; args?: string; result?: string; reply?: string; toolCalls?: ToolCallResult[]; resumeModified?: boolean };
+
+          if (evt.type === "text" && evt.content) {
+            fullReply += evt.content;
+            // Update the placeholder message in real-time
+            setMessages((prev) => {
+              const updated_msgs = [...prev];
+              const last = updated_msgs[updated_msgs.length - 1];
+              if (last && last.role === "assistant") {
+                updated_msgs[updated_msgs.length - 1] = { ...last, content: fullReply };
+              }
+              return updated_msgs;
+            });
+          } else if (evt.type === "tool_start" && evt.tool) {
+            collectedToolCalls.push({ tool: evt.tool, args: {}, result: "执行中..." });
+            setMessages((prev) => {
+              const updated_msgs = [...prev];
+              const last = updated_msgs[updated_msgs.length - 1];
+              if (last && last.role === "assistant") {
+                updated_msgs[updated_msgs.length - 1] = { ...last, toolCalls: [...collectedToolCalls] };
+              }
+              return updated_msgs;
+            });
+          } else if (evt.type === "tool_result" && evt.tool) {
+            // Update the last matching tool call with the actual result
+            const idx = collectedToolCalls.findLastIndex((tc) => tc.tool === evt.tool);
+            if (idx >= 0) {
+              collectedToolCalls[idx] = { ...collectedToolCalls[idx], result: evt.result ?? "" };
+            }
+            setMessages((prev) => {
+              const updated_msgs = [...prev];
+              const last = updated_msgs[updated_msgs.length - 1];
+              if (last && last.role === "assistant") {
+                updated_msgs[updated_msgs.length - 1] = { ...last, toolCalls: [...collectedToolCalls] };
+              }
+              return updated_msgs;
+            });
+          } else if (evt.type === "resume_update") {
+            resumeWasModified = true;
+          } else if (evt.type === "done") {
+            // Final update with complete data
+            const doneEvt = evt as { reply?: string; toolCalls?: ToolCallResult[]; resumeModified?: boolean };
+            fullReply = doneEvt.reply || fullReply;
+            setMessages((prev) => {
+              const updated_msgs = [...prev];
+              const last = updated_msgs[updated_msgs.length - 1];
+              if (last && last.role === "assistant") {
+                updated_msgs[updated_msgs.length - 1] = {
+                  ...last,
+                  content: fullReply || "(AI 未返回文字回复)",
+                  toolCalls: doneEvt.toolCalls || collectedToolCalls,
+                  resumeModified: doneEvt.resumeModified ?? resumeWasModified,
+                };
+              }
+              return updated_msgs;
+            });
+            if ((doneEvt.resumeModified ?? resumeWasModified) && onResumeUpdated) {
+              onResumeUpdated();
+            }
+          }
+        }
       } else {
-        // Fallback to basic chat
+        // Fallback to basic chat (no resume context)
         const headers = getAIHeaders();
         const payload = { messages: updated.map((m) => ({ role: m.role, content: m.content })), resumeId };
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"}/api/ai/chat`, {
@@ -109,20 +176,15 @@ export default function AiChatPanel({ resumeId, open, onOpenChange, onResumeUpda
         });
         const body = await res.json();
         if (!res.ok || !body.success) throw new Error(body.message || "请求失败");
-        response = { reply: body.data?.content ?? body.data ?? "", toolCalls: [], resumeModified: false };
-      }
-
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: response.reply || "(AI 未返回文字回复)",
-        toolCalls: response.toolCalls,
-        resumeModified: response.resumeModified,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-
-      // If resume was modified, trigger reload
-      if (response.resumeModified && onResumeUpdated) {
-        onResumeUpdated();
+        const reply = body.data?.content ?? body.data ?? "";
+        setMessages((prev) => {
+          const updated_msgs = [...prev];
+          const last = updated_msgs[updated_msgs.length - 1];
+          if (last && last.role === "assistant") {
+            updated_msgs[updated_msgs.length - 1] = { ...last, content: reply || "(AI 未返回文字回复)" };
+          }
+          return updated_msgs;
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "发送失败");
