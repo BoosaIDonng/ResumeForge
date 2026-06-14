@@ -1,5 +1,6 @@
 package com.example.airesume.interview;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -19,6 +20,13 @@ public class InterviewSessionEntity {
     private String role;
     private String level;
     private String type;
+
+    @Column(length = 500)
+    private String techStack;
+
+    @Column(name = "question_count")
+    private int questionCount = 5;
+
     private String persona;
     private String status;
     private LocalDateTime createdAt;
@@ -27,17 +35,20 @@ public class InterviewSessionEntity {
     protected InterviewSessionEntity() {
     }
 
-    public InterviewSessionEntity(Long resumeId, Long jobId, String role, String level, String type) {
-        this(resumeId, jobId, role, level, type, null);
+    public InterviewSessionEntity(Long resumeId, Long jobId, String role, String level, String type, String persona) {
+        this(resumeId, jobId, role, level, type, persona, null, 5);
     }
 
-    public InterviewSessionEntity(Long resumeId, Long jobId, String role, String level, String type, String persona) {
+    public InterviewSessionEntity(Long resumeId, Long jobId, String role, String level, String type,
+                                   String persona, String techStack, int questionCount) {
         this.resumeId = resumeId;
         this.jobId = jobId;
         this.role = role;
         this.level = level;
         this.type = type;
         this.persona = persona;
+        this.techStack = techStack;
+        this.questionCount = questionCount > 0 ? questionCount : 5;
         this.status = "PENDING";
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
@@ -65,6 +76,14 @@ public class InterviewSessionEntity {
 
     public String getType() {
         return type;
+    }
+
+    public String getTechStack() {
+        return techStack;
+    }
+
+    public int getQuestionCount() {
+        return questionCount;
     }
 
     public String getPersona() {

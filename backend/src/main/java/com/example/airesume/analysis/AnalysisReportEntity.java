@@ -22,19 +22,19 @@ public class AnalysisReportEntity {
     private int atsScore;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String keywordMatches;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String missingKeywords;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String suggestions;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String summary;
 
     private LocalDateTime createdAt;

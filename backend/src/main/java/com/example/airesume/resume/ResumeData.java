@@ -7,7 +7,10 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ResumeData(
     Basics basics,
-    Map<String, Section> sections
+    Summary summary,
+    Map<String, Section> sections,
+    List<Map<String, Object>> customSections,
+    Metadata metadata
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Basics(
@@ -16,13 +19,30 @@ public record ResumeData(
         String email,
         String phone,
         String location,
-        String url,
-        String summary
+        String website,
+        List<Map<String, Object>> customFields
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Summary(
+        String title,
+        String content,
+        Boolean hidden
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Section(
-        String name,
+        String title,
+        Boolean hidden,
         List<Map<String, Object>> items
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Metadata(
+        String template,
+        String language,
+        Map<String, Object> design,
+        Map<String, Object> typography,
+        Map<String, Object> page
     ) {}
 }

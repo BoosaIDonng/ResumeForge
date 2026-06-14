@@ -30,4 +30,8 @@ public class JobService {
         entity.update(title, company, description);
         return repository.save(entity);
     }
+
+    public JobEntity save(JobEntity entity) {
+        return repository.save(entity);
+    }
 }

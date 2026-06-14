@@ -37,4 +37,22 @@ public class ResumeService {
         entity.update(title, resumeData);
         return repository.save(entity);
     }
+
+    public ResumeEntity duplicate(Long id) {
+        ResumeEntity source = get(id);
+        ResumeEntity copy = new ResumeEntity(
+            source.getUserId(),
+            source.getTitle() + " (副本)",
+            false,
+            source.getResumeData()
+        );
+        return repository.save(copy);
+    }
+
+    public void delete(Long id) {
+        if (!repository.existsById(id)) {
+            throw new ApiException("RESUME_NOT_FOUND", "简历不存在");
+        }
+        repository.deleteById(id);
+    }
 }

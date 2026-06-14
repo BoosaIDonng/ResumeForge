@@ -1,5 +1,7 @@
 package com.example.airesume.chat;
 
+import com.example.airesume.resume.ResumeEntity;
+import com.example.airesume.resume.ResumeService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -10,10 +12,12 @@ import java.util.concurrent.Executors;
 @RequestMapping("/api/chat")
 public class ChatController {
     private final ChatStreamService chatStreamService;
+    private final ResumeService resumeService;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public ChatController(ChatStreamService chatStreamService) {
+    public ChatController(ChatStreamService chatStreamService, ResumeService resumeService) {
         this.chatStreamService = chatStreamService;
+        this.resumeService = resumeService;
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -22,7 +26,15 @@ public class ChatController {
 
         executor.execute(() -> {
             try {
-                String resumeJson = null; // TODO: load from DB by request.resumeId()
+                String resumeJson = null;
+                if (request.resumeId() != null) {
+                    try {
+                        ResumeEntity resume = resumeService.get(request.resumeId());
+                        resumeJson = resume.getResumeData();
+                    } catch (Exception e) {
+                        resumeJson = null;
+                    }
+                }
 
                 chatStreamService.streamChat(request.messages(), resumeJson, chunk -> {
                     try {

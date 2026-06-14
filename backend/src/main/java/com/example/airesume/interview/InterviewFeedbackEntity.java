@@ -20,20 +20,24 @@ public class InterviewFeedbackEntity {
     private int totalScore;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String categoryScores;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String strengths;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String areasForImprovement;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String finalAssessment;
+
+    @Lob
+    @Column(columnDefinition = "longtext")
+    private String improvementPlan;
 
     private LocalDateTime createdAt;
 
@@ -46,7 +50,8 @@ public class InterviewFeedbackEntity {
         String categoryScores,
         String strengths,
         String areasForImprovement,
-        String finalAssessment
+        String finalAssessment,
+        String improvementPlan
     ) {
         this.sessionId = sessionId;
         this.totalScore = totalScore;
@@ -54,6 +59,7 @@ public class InterviewFeedbackEntity {
         this.strengths = strengths;
         this.areasForImprovement = areasForImprovement;
         this.finalAssessment = finalAssessment;
+        this.improvementPlan = improvementPlan;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -83,6 +89,10 @@ public class InterviewFeedbackEntity {
 
     public String getFinalAssessment() {
         return finalAssessment;
+    }
+
+    public String getImprovementPlan() {
+        return improvementPlan;
     }
 
     public LocalDateTime getCreatedAt() {

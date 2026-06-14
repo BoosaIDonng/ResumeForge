@@ -23,7 +23,7 @@ public class ResumeEntity {
     private boolean master;
 
     @Lob
-    @Column(name = "resume_data", nullable = false)
+    @Column(name = "resume_data", columnDefinition = "longtext", nullable = false)
     private String resumeData;
 
     private LocalDateTime createdAt;

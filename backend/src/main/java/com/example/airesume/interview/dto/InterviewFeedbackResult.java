@@ -7,5 +7,6 @@ public record InterviewFeedbackResult(
     List<CategoryScore> categoryScores,
     List<String> strengths,
     List<String> areasForImprovement,
-    String finalAssessment
+    String finalAssessment,
+    List<String> improvementPlan
 ) {}

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -44,6 +45,11 @@ public class TaskController {
         });
         emitter.onError(error -> stream.cancel(true));
         return emitter;
+    }
+
+    @PostMapping("/{id}/retry")
+    public ApiResponse<AiTaskEntity> retry(@PathVariable Long id) {
+        return ApiResponse.ok(service.retry(id));
     }
 
     private void streamEvents(Long id, SseEmitter emitter) {

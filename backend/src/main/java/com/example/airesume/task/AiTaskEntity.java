@@ -25,6 +25,7 @@ public class AiTaskEntity {
     private Long resultRefId;
 
     @Lob
+    @Column(columnDefinition = "longtext")
     private String errorMessage;
 
     private LocalDateTime createdAt;

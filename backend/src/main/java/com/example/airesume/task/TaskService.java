@@ -1,36 +1,55 @@
 package com.example.airesume.task;
 
 import com.example.airesume.common.ApiException;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TaskService {
+    private static final Logger log = LoggerFactory.getLogger(TaskService.class);
     static final String PROGRESS_KEY_PATTERN = "task:%d:progress";
 
     private final AiTaskRepository repository;
-    private final RabbitTemplate rabbitTemplate;
-    private final StringRedisTemplate redisTemplate;
+    private final TaskDispatcher dispatcher;
+    private final LocalTaskDispatcher localDispatcher;
+    private final ProgressTracker progressTracker;
 
     public TaskService(
         AiTaskRepository repository,
-        RabbitTemplate rabbitTemplate,
-        StringRedisTemplate redisTemplate
+        TaskDispatcher dispatcher,
+        LocalTaskDispatcher localDispatcher,
+        ProgressTracker progressTracker
     ) {
         this.repository = repository;
-        this.rabbitTemplate = rabbitTemplate;
-        this.redisTemplate = redisTemplate;
+        this.dispatcher = dispatcher;
+        this.localDispatcher = localDispatcher;
+        this.progressTracker = progressTracker;
     }
 
     public AiTaskEntity create(TaskType taskType, Long resumeId, Long jobId) {
         AiTaskEntity task = repository.save(new AiTaskEntity(taskType.name(), resumeId, jobId));
-        redisTemplate.opsForValue().set(progressKey(task.getId()), "0");
-        rabbitTemplate.convertAndSend(
-            RabbitConfig.TASK_EXCHANGE,
-            RabbitConfig.TASK_ROUTING_KEY,
-            new TaskMessage(task.getId(), taskType, resumeId, jobId)
-        );
+        progressTracker.setProgress(task.getId(), 0);
+        TaskMessage message = new TaskMessage(task.getId(), taskType, resumeId, jobId);
+        try {
+            dispatcher.dispatch(message);
+        } catch (Exception ex) {
+            log.warn("Primary dispatcher failed ({}), falling back to local execution", ex.getMessage());
+            localDispatcher.dispatch(message);
+        }
+        return task;
+    }
+
+    public AiTaskEntity createWithSession(TaskType taskType, Long resumeId, Long jobId, Long sessionId) {
+        AiTaskEntity task = repository.save(new AiTaskEntity(taskType.name(), resumeId, jobId));
+        progressTracker.setProgress(task.getId(), 0);
+        TaskMessage message = new TaskMessage(task.getId(), taskType, resumeId, jobId, sessionId);
+        try {
+            dispatcher.dispatch(message);
+        } catch (Exception ex) {
+            log.warn("Primary dispatcher failed ({}), falling back to local execution", ex.getMessage());
+            localDispatcher.dispatch(message);
+        }
         return task;
     }
 
@@ -39,21 +58,19 @@ public class TaskService {
             .orElseThrow(() -> new ApiException("TASK_NOT_FOUND", "Task not found"));
     }
 
-    public TaskProgress progress(Long id) {
-        AiTaskEntity task = get(id);
-        return new TaskProgress(task.getId(), task.getStatus(), readProgress(task));
+    public AiTaskEntity retry(Long id) {
+        AiTaskEntity oldTask = get(id);
+        if (!"FAILED".equals(oldTask.getStatus())) {
+            throw new ApiException("TASK_NOT_RETRYABLE", "只有失败的任务可以重试");
+        }
+        TaskType taskType = TaskType.valueOf(oldTask.getTaskType());
+        return create(taskType, oldTask.getResumeId(), oldTask.getJobId());
     }
 
-    private int readProgress(AiTaskEntity task) {
-        String value = redisTemplate.opsForValue().get(progressKey(task.getId()));
-        if (value == null || value.isBlank()) {
-            return task.getProgress();
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ex) {
-            return task.getProgress();
-        }
+    public TaskProgress progress(Long id) {
+        AiTaskEntity task = get(id);
+        int progress = progressTracker.getProgress(task.getId(), task.getProgress());
+        return new TaskProgress(task.getId(), task.getStatus(), progress);
     }
 
     static String progressKey(Long taskId) {

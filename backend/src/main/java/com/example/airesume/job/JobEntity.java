@@ -21,10 +21,11 @@ public class JobEntity {
     private String company;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String description;
 
     @Lob
+    @Column(columnDefinition = "longtext")
     private String extractedKeywords;
 
     private LocalDateTime createdAt;

@@ -20,19 +20,19 @@ public class OptimizationProposalEntity {
     private String status;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String changes;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String appliedChanges;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String rejectedChanges;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String preview;
 
     private LocalDateTime createdAt;

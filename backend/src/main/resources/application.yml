@@ -1,7 +1,10 @@
 server:
   port: 8080
+  shutdown: graceful
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 5s
   thymeleaf:
     check-template-location: false
     prefix: classpath:/templates/
@@ -14,7 +17,7 @@ spring:
     password: 123456
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
   flyway:
     enabled: true
@@ -30,6 +33,8 @@ spring:
 
 ai:
   openai-compatible:
-    base-url: ${AI_BASE_URL:http://localhost:11434/v1}
-    api-key: ${AI_API_KEY:local-dev-key}
-    model: ${AI_MODEL:deepseek-chat}
+    base-url: ${AI_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
+    api-key: ${AI_API_KEY:tp-cxx8tdtpfhzfra1yt71s3q0s8ihq0hrylhj78qhs8udp6kma}
+    model: ${AI_MODEL:mimo-v2.5-pro}
+    temperature: ${AI_TEMPERATURE:0.2}
+    max-tokens: ${AI_MAX_TOKENS:4096}

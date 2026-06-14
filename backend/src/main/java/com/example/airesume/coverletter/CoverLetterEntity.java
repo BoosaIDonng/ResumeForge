@@ -21,7 +21,7 @@ public class CoverLetterEntity {
     private String tone;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String content;
 
     private LocalDateTime createdAt;

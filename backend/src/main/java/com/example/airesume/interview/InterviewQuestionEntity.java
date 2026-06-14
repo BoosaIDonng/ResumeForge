@@ -20,10 +20,11 @@ public class InterviewQuestionEntity {
     private int sortOrder;
 
     @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "longtext", nullable = false)
     private String question;
 
     @Lob
+    @Column(columnDefinition = "longtext")
     private String answer;
 
     private LocalDateTime createdAt;
