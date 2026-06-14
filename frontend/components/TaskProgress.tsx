@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { apiPost } from "@/lib/api";
+import type { AiTask } from "@/lib/types";
 
 type TaskProgressProps = {
   taskId: number;
   onComplete?: () => void;
+  onRetry?: (newTaskId: number) => void;
 };
 
-export function TaskProgress({ taskId, onComplete }: TaskProgressProps) {
+export function TaskProgress({ taskId, onComplete, onRetry }: TaskProgressProps) {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<string>("PENDING");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const retriesRef = useRef(0);
   const maxRetries = 3;
 
@@ -47,34 +52,73 @@ export function TaskProgress({ taskId, onComplete }: TaskProgressProps) {
 
     connect();
 
+    if (status === "FAILED") {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"}/api/tasks/${taskId}`)
+        .then((res) => res.json())
+        .then((body: { data?: AiTask }) => {
+          if (body.data?.errorMessage) setErrorMessage(body.data.errorMessage);
+        })
+        .catch(() => {});
+    }
+
     return () => {
       closed = true;
       eventSource?.close();
     };
-  }, [taskId, onComplete]);
+  }, [taskId, onComplete, status]);
+
+  async function handleRetry() {
+    setRetrying(true);
+    try {
+      const newTask = await apiPost<AiTask>(`/api/tasks/${taskId}/retry`, {});
+      if (onRetry) {
+        onRetry(newTask.id);
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "重试失败");
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   const statusConfig: Record<string, { label: string; color: string; barColor: string }> = {
-    PENDING: { label: "排队中", color: "text-zinc-500", barColor: "bg-zinc-400" },
-    RUNNING: { label: "处理中", color: "text-blue-600 dark:text-blue-400", barColor: "bg-blue-500" },
-    SUCCEEDED: { label: "完成", color: "text-emerald-600 dark:text-emerald-400", barColor: "bg-emerald-500" },
-    FAILED: { label: "失败", color: "text-red-600 dark:text-red-400", barColor: "bg-red-500" },
+    PENDING: { label: "排队中", color: "text-muted-foreground", barColor: "bg-muted-foreground/60" },
+    RUNNING: { label: "处理中", color: "text-primary", barColor: "bg-primary" },
+    SUCCEEDED: { label: "完成", color: "text-success", barColor: "bg-success" },
+    FAILED: { label: "失败", color: "text-destructive", barColor: "bg-destructive" },
   };
 
   const config = statusConfig[status] ?? statusConfig.PENDING;
 
   return (
-    <div className="w-full rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="w-full rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between text-sm mb-2">
-        <span className="text-zinc-500 dark:text-zinc-400">任务 #{taskId}</span>
+        <span className="text-muted-foreground">任务 #{taskId}</span>
         <span className={`font-medium ${config.color}`}>{config.label}</span>
       </div>
-      <div className="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ease-out ${config.barColor}`}
           style={{ width: `${progress}%` }}
         />
       </div>
-      <p className="text-xs text-zinc-400 mt-1.5">{progress}%</p>
+      <p className="text-xs text-muted-foreground/60 mt-1.5">{progress}%</p>
+      {status === "FAILED" && (
+        <div className="mt-3 space-y-2">
+          {errorMessage && (
+            <p className="text-xs text-destructive bg-destructive/5 rounded-md px-3 py-2">
+              {errorMessage}
+            </p>
+          )}
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {retrying ? "重试中..." : "重试任务"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

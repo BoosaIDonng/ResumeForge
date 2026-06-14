@@ -1,126 +1,329 @@
-import Link from "next/link";
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Sparkles, UploadCloud, Plus, LayoutGrid, List } from "lucide-react";
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
+import type { Resume } from "@/lib/types";
+import ResumeCard from "@/components/dashboard/ResumeCard";
+import ResumeListItem from "@/components/dashboard/ResumeListItem";
+import CreateResumeDialog from "@/components/dashboard/CreateResumeDialog";
+import ImportJsonDialog from "@/components/dashboard/ImportJsonDialog";
+import ShareDialog from "@/components/dashboard/ShareDialog";
+import TourOverlay from "@/components/dashboard/TourOverlay";
+import DocxImportButton from "@/components/ai/DocxImportButton";
+import { calcCompleteness, parseResumeDataSafe, getPreviewSummary } from "@/lib/completeness";
+
+type ViewMode = "grid" | "list";
+type SortKey = "updatedAt" | "createdAt" | "title-asc" | "title-desc";
+
+const VIEW_KEY = "ai-resume-view-mode";
+
+const sortLabels: Record<SortKey, string> = {
+  updatedAt: "最近编辑", createdAt: "创建时间", "title-asc": "名称 A–Z", "title-desc": "名称 Z–A",
+};
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 6) return "夜深了，注意休息";
+  if (hour < 12) return "早安，新的一天";
+  if (hour < 14) return "午安";
+  if (hour < 18) return "下午好";
+  return "晚上好";
+}
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [shareResumeId, setShareResumeId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(VIEW_KEY);
+    if (saved === "grid" || saved === "list") setViewMode(saved);
+  }, []);
+
+  const loadResumes = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await apiGet<Resume[]>("/api/resumes");
+      setResumes(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadResumes(); }, [loadResumes]);
+
+  function toggleView(mode: ViewMode) {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_KEY, mode);
+  }
+
+  const sorted = [...resumes].sort((a, b) => {
+    switch (sortKey) {
+      case "updatedAt": return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      case "createdAt": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case "title-asc": return a.title.localeCompare(b.title, "zh-CN");
+      case "title-desc": return b.title.localeCompare(a.title, "zh-CN");
+    }
+  });
+
+  const featured = sorted[0] || null;
+  const rest = sorted.slice(1);
+  const featuredData = featured ? parseResumeDataSafe(featured.resumeData) : null;
+  const featuredCompleteness = featuredData ? calcCompleteness(featuredData) : 0;
+  const featuredSummary = featured ? getPreviewSummary(featured.resumeData, 80) : "";
+
+  async function handleRename(id: number, newTitle: string) {
+    try {
+      const resume = resumes.find((r) => r.id === id);
+      if (!resume) return;
+      await apiPut(`/api/resumes/${id}`, { title: newTitle, resumeData: resume.resumeData });
+      setResumes((prev) => prev.map((r) => (r.id === id ? { ...r, title: newTitle, updatedAt: new Date().toISOString() } : r)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "重命名失败");
+    }
+  }
+
+  async function handleCopy(id: number) {
+    try {
+      const copy = await apiPost<Resume>(`/api/resumes/${id}/copy`, {});
+      setResumes((prev) => [copy, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "复制失败");
+    }
+  }
+
+  function handleShare(id: number) { setShareResumeId(id); }
+
+  async function handleDelete(id: number) {
+    if (!confirm("确定要删除这份简历吗？此操作不可撤销。")) return;
+    try {
+      await apiDelete(`/api/resumes/${id}`);
+      setResumes((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    }
+  }
+
+  function handleCreated(resume: Resume) {
+    setResumes((prev) => [resume, ...prev]);
+    router.push(`/resumes/${resume.id}/edit`);
+  }
+
+  function handleImported(resume: Resume) { setResumes((prev) => [resume, ...prev]); }
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <section className="mb-10">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-          AI 简历优化平台
-        </h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          从简历编辑到模拟面试，一站式提升你的求职竞争力
+    <div className="mx-auto max-w-6xl px-6 py-0">
+      {/* Hero */}
+      <div className="border-b-[3px] border-double border-border py-6">
+        <p className="text-eyebrow mb-2">{getGreeting()}</p>
+        <h1 className="text-display leading-[1.05] text-foreground">简历工作台</h1>
+        <p className="mt-3 max-w-xl text-sm text-muted-foreground leading-relaxed drop-cap">
+          每份简历都值得被认真对待。选择一份继续编辑，或创建新简历，开始你的求职旅程。
         </p>
-      </section>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <DashboardCard
-          title="简历管理"
-          description="创建、编辑结构化简历，上传 PDF 自动解析"
-          href="/resumes"
-          icon={<DocIcon />}
-          color="blue"
-        />
-        <DashboardCard
-          title="JD 分析"
-          description="匹配岗位要求，ATS 评分 + 关键词分析"
-          href="/jobs/new"
-          icon={<SearchIcon />}
-          color="purple"
-        />
-        <DashboardCard
-          title="模拟面试"
-          description="4 种面试官人格，练习回答并获取反馈"
-          href="/interviews"
-          icon={<ChatIcon />}
-          color="emerald"
-        />
-      </div>
-
-      <section className="mt-12 rounded-lg border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
-          快速开始
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 text-sm text-zinc-600 dark:text-zinc-400">
-          <Step num={1} text="创建一份结构化简历（或上传 PDF）" />
-          <Step num={2} text="粘贴目标岗位 JD，提交分析" />
-          <Step num={3} text="查看 ATS 报告 + 优化建议" />
-          <Step num={4} text="选择面试官人格，开始模拟面试" />
-          <Step num={5} text="查看面试反馈，导出 PDF" />
-          <Step num={6} text="生成针对性求职信" />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button data-tour="create" onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover">
+            <Plus className="h-4 w-4" /> 新建简历
+          </button>
+          <button data-tour="ai-generate" onClick={() => router.push("/resumes?ai=true")}
+            className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
+            <Sparkles className="h-4 w-4" /> AI 生成
+          </button>
+          <button data-tour="export" onClick={() => setImportOpen(true)}
+            className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
+            <UploadCloud className="h-4 w-4" /> 导入
+          </button>
+          <DocxImportButton />
         </div>
-      </section>
-    </div>
-  );
-}
-
-function Step({ num, text }: { num: number; text: string }) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-        {num}
-      </span>
-      <span>{text}</span>
-    </div>
-  );
-}
-
-const colorMap = {
-  blue: "border-blue-100 hover:border-blue-300 dark:border-blue-900/30 dark:hover:border-blue-700",
-  purple: "border-purple-100 hover:border-purple-300 dark:border-purple-900/30 dark:hover:border-purple-700",
-  emerald: "border-emerald-100 hover:border-emerald-300 dark:border-emerald-900/30 dark:hover:border-emerald-700",
-};
-
-const iconBgMap = {
-  blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-  purple: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
-  emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400",
-};
-
-function DashboardCard({ title, description, href, icon, color }: {
-  title: string;
-  description: string;
-  href: string;
-  icon: React.ReactNode;
-  color: keyof typeof colorMap;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`group flex gap-4 rounded-xl border bg-white p-5 shadow-sm transition-all hover:shadow-md dark:bg-zinc-900 ${colorMap[color]}`}
-    >
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBgMap[color]}`}>
-        {icon}
       </div>
-      <div>
-        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-          {title}
-        </h3>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{description}</p>
+
+      {/* Pull quote */}
+      <div className="border-b border-border py-4">
+        <blockquote className="border-l-2 border-primary pl-4 text-sm italic text-muted-foreground">
+          "简历是你的第一印象——让它说话。"
+        </blockquote>
       </div>
-    </Link>
-  );
-}
 
-function DocIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-    </svg>
-  );
-}
+      {/* Error */}
+      {error && (
+        <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>
+      )}
 
-function SearchIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-    </svg>
-  );
-}
+      {/* Toolbar */}
+      <div className="flex items-center justify-between border-b border-border py-2">
+        <div className="flex items-center gap-3">
+          <span className="text-eyebrow">全部简历</span>
+          <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}
+            className="border-none bg-transparent text-xs text-muted-foreground outline-none cursor-pointer">
+            {Object.entries(sortLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center divide-x divide-border">
+          <button onClick={() => toggleView("grid")} aria-label="网格视图"
+            className={`p-2 text-xs transition-colors ${viewMode === "grid" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => toggleView("list")} aria-label="列表视图"
+            className={`p-2 text-xs transition-colors ${viewMode === "list" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+            <List className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
 
-function ChatIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
-    </svg>
+      {/* Content */}
+      {loading ? (
+        <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-card p-5 animate-pulse">
+              <div className="h-4 w-2/3 bg-muted" />
+              <div className="mt-2 h-3 w-1/3 bg-muted/50" />
+            </div>
+          ))}
+        </div>
+      ) : sorted.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <span className="font-heading text-6xl font-bold text-muted-foreground/20">空</span>
+          <p className="mt-2 text-sm text-muted-foreground">还没有简历</p>
+          <button onClick={() => setCreateOpen(true)}
+            className="mt-4 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover transition-colors">
+            创建第一份简历
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Multi-column: Featured (2/3) + Sidebar (1/3) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3" data-tour="templates">
+            {/* Featured article — left 2/3 */}
+            {featured && (
+              <div className="lg:col-span-2 border-r border-border">
+                <div
+                  onClick={() => router.push(`/resumes/${featured.id}/edit`)}
+                  onKeyDown={(e) => { if (e.key === "Enter") router.push(`/resumes/${featured.id}/edit`); }}
+                  role="button"
+                  tabIndex={0}
+                  className="group cursor-pointer bg-card p-6 transition-colors hover:bg-muted/30"
+                >
+                  <span className="mb-2 block font-heading text-4xl font-bold leading-none text-muted-foreground/10 tabular-nums select-none">
+                    01
+                  </span>
+                  <h2 className="mb-2 font-heading text-2xl font-bold leading-tight text-foreground group-hover:text-primary transition-colors">
+                    {featured.title}
+                  </h2>
+                  {featuredData?.basics?.name && (
+                    <p className="text-sm text-muted-foreground mb-2">
+                      <span className="font-medium text-foreground">{featuredData.basics.name}</span>
+                      {featuredData.basics.headline && <><span className="mx-1">·</span>{featuredData.basics.headline}</>}
+                    </p>
+                  )}
+                  {featuredSummary && (
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-md">{featuredSummary}</p>
+                  )}
+                  <div className="mb-4 max-w-xs">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                      <span>完整度</span>
+                      <span className="tabular-nums font-medium">{featuredCompleteness}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted">
+                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${featuredCompleteness}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground border-t border-border pt-3">
+                    <span className="border border-border px-1.5 py-0.5 font-medium">
+                      {(() => { try { return JSON.parse(featured.resumeData)?.metadata?.template || "default"; } catch { return "default"; } })()}
+                    </span>
+                    {featured.master && <span className="border border-primary/40 text-primary px-1.5 py-0.5 font-medium">主版</span>}
+                    <span className="ml-auto tabular-nums">更新于 {new Date(featured.updatedAt).toLocaleDateString("zh-CN", { month: "long", day: "numeric" })}</span>
+                  </div>
+                </div>
+
+                {/* Grid of rest under featured (on desktop) */}
+                {rest.length > 0 && viewMode === "grid" && (
+                  <div className="grid grid-cols-2 gap-px bg-border border-t border-border">
+                    {rest.map((r, i) => (
+                      <ResumeCard key={r.id} resume={r} index={i + 1} onRename={handleRename} onCopy={handleCopy} onShare={handleShare} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                )}
+                {rest.length > 0 && viewMode === "list" && (
+                  <div className="divide-y divide-border border-t border-border">
+                    {rest.map((r, i) => (
+                      <ResumeListItem key={r.id} resume={r} index={i + 1} onRename={handleRename} onCopy={handleCopy} onShare={handleShare} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sidebar — right 1/3 */}
+            <div className="hidden lg:block">
+              <div className="px-4 py-3 border-b border-border">
+                <span className="text-eyebrow">近期动态</span>
+              </div>
+              <div className="divide-y divide-border">
+                {sorted.slice(0, 5).map((r, i) => (
+                  <div
+                    key={r.id}
+                    onClick={() => router.push(`/resumes/${r.id}/edit`)}
+                    onKeyDown={(e) => { if (e.key === "Enter") router.push(`/resumes/${r.id}/edit`); }}
+                    role="button"
+                    tabIndex={0}
+                    className="cursor-pointer px-4 py-3 transition-colors hover:bg-muted/30"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="font-heading text-xs font-bold text-muted-foreground/25 tabular-nums select-none pt-0.5">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate" title={r.title}>{r.title}</p>
+                        {parseResumeDataSafe(r.resumeData)?.basics?.name && (
+                          <p className="text-[11px] text-muted-foreground truncate" title={parseResumeDataSafe(r.resumeData)!.basics.name}>{parseResumeDataSafe(r.resumeData)!.basics.name}</p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                          {new Date(r.updatedAt).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats bar */}
+          <div className="flex items-center justify-between border-t-[3px] border-double border-border py-3 mt-0">
+            <span className="text-xs text-muted-foreground">
+              共 <strong className="text-foreground">{resumes.length}</strong> 份简历
+            </span>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              最后编辑: {new Date(sorted[0]?.updatedAt).toLocaleDateString("zh-CN", { month: "long", day: "numeric" })}
+            </span>
+          </div>
+        </>
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-border py-4 mt-4">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span className="tracking-wider uppercase">AI Resume · 简历优化平台</span>
+          <span className="tabular-nums">每份简历都值得被认真对待</span>
+        </div>
+      </footer>
+
+      <CreateResumeDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreate={handleCreated} />
+      <ImportJsonDialog open={importOpen} onClose={() => setImportOpen(false)} onImport={handleImported} />
+      <ShareDialog open={shareResumeId !== null} resumeId={shareResumeId} onClose={() => setShareResumeId(null)} />
+      <TourOverlay />
+    </div>
   );
 }

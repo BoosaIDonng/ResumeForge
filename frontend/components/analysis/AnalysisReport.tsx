@@ -29,7 +29,7 @@ export function AnalysisReport({ report, onOptimize, onInterview }: AnalysisRepo
 
       {/* Keyword Matches */}
       <section>
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-2">
           匹配关键词
         </h3>
         <KeywordList keywords={keywordMatches} variant="match" />
@@ -37,7 +37,7 @@ export function AnalysisReport({ report, onOptimize, onInterview }: AnalysisRepo
 
       {/* Missing Keywords */}
       <section>
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-2">
           缺失关键词
         </h3>
         <KeywordList keywords={missingKeywords} variant="missing" />
@@ -46,28 +46,28 @@ export function AnalysisReport({ report, onOptimize, onInterview }: AnalysisRepo
       {/* Suggestions */}
       {suggestions.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-2">
             优化建议
           </h3>
           <div className="space-y-3">
             {suggestions.map((s, i) => (
               <div
                 key={i}
-                className="rounded-md border border-zinc-200 dark:border-zinc-700 p-3"
+                className="rounded-md border border-border p-3"
               >
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                <p className="text-xs font-medium text-muted-foreground mb-1">
                   {s.section}
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div>
-                    <p className="text-xs text-zinc-400 mb-0.5">当前</p>
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300 bg-red-50 dark:bg-red-900/10 rounded px-2 py-1">
+                    <p className="text-xs text-muted-foreground/60 mb-0.5">当前</p>
+                    <p className="text-sm text-muted-foreground bg-destructive/5 rounded px-2 py-1">
                       {s.current}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-400 mb-0.5">建议</p>
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300 bg-green-50 dark:bg-green-900/10 rounded px-2 py-1">
+                    <p className="text-xs text-muted-foreground/60 mb-0.5">建议</p>
+                    <p className="text-sm text-muted-foreground bg-success/10 rounded px-2 py-1">
                       {s.suggested}
                     </p>
                   </div>
@@ -80,10 +80,10 @@ export function AnalysisReport({ report, onOptimize, onInterview }: AnalysisRepo
 
       {/* Summary */}
       <section>
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-2">
           总结
         </h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           {report.summary}
         </p>
       </section>
@@ -92,13 +92,13 @@ export function AnalysisReport({ report, onOptimize, onInterview }: AnalysisRepo
       <div className="flex gap-3 pt-2">
         <button
           onClick={onOptimize}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           生成优化方案
         </button>
         <button
           onClick={onInterview}
-          className="rounded-md border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
         >
           开始模拟面试
         </button>

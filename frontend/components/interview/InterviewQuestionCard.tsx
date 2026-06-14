@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check } from "lucide-react";
 import type { InterviewQuestion } from "@/lib/types";
 
 type InterviewQuestionCardProps = {
@@ -30,12 +31,12 @@ export function InterviewQuestionCard({
   };
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
-        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-sm font-bold">
+        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold">
           {index + 1}
         </span>
-        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
+        <h3 className="text-lg font-medium text-foreground">
           {question.question}
         </h3>
       </div>
@@ -48,34 +49,21 @@ export function InterviewQuestionCard({
         }}
         rows={6}
         placeholder="在此输入你的回答..."
-        className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+        className="w-full rounded-lg border border-border bg-muted/50 px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary resize-y"
       />
 
       <div className="flex items-center justify-between mt-4">
         <button
           onClick={handleSave}
           disabled={saving || !answer.trim()}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? "保存中..." : "保存回答"}
         </button>
 
         {saved && (
-          <span className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+          <span className="flex items-center gap-1 text-sm text-success">
+            <Check className="w-4 h-4" aria-hidden="true" />
             已保存
           </span>
         )}

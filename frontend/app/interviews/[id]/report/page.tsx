@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import type { InterviewFeedback } from "@/lib/types";
 import { FeedbackReport } from "@/components/interview/FeedbackReport";
+import { ArrowLeft } from "lucide-react";
 
 export default function InterviewReportPage() {
   const params = useParams();
@@ -34,7 +35,7 @@ export default function InterviewReportPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-zinc-500">加载中...</p>
+        <p className="text-muted-foreground">加载中...</p>
       </div>
     );
   }
@@ -42,38 +43,25 @@ export default function InterviewReportPage() {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto py-12 px-4">
-        <p className="text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-destructive">{error}</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-8">
+      <h1 className="text-2xl font-bold text-foreground mb-8">
         面试反馈报告
       </h1>
 
       {feedback && <FeedbackReport feedback={feedback} />}
 
-      <div className="mt-10 pt-6 border-t border-zinc-200 dark:border-zinc-700">
+      <div className="mt-10 pt-6 border-t border-border">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
+          <ArrowLeft className="w-4 h-4" />
           返回仪表盘
         </Link>
       </div>

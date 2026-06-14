@@ -54,6 +54,8 @@ export type InterviewSession = {
   role: string;
   level: string;
   type: string;
+  techStack: string | null;
+  questionCount: number;
   status: string;
   createdAt: string;
 };
@@ -76,5 +78,80 @@ export type InterviewFeedback = {
   strengths: string;
   areasForImprovement: string;
   finalAssessment: string;
+  improvementPlan: string;
   createdAt: string;
+};
+
+export type AiConfig = {
+  baseUrl: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+};
+
+export type ShareInfo = {
+  id: number;
+  resumeId: number;
+  token: string;
+  hasPassword: boolean;
+  viewCount: number;
+  active: boolean;
+};
+
+export type PublicShareData = {
+  title: string;
+  resumeData: string;
+  template: string;
+  viewCount: number;
+};
+
+export type TemplateInfo = {
+  id: string;
+  name: string;
+  description: string;
+  preview?: string;
+};
+
+export type Application = {
+  id: number;
+  resumeId: number;
+  company: string;
+  position: string;
+  status: string;
+  appliedAt: string;
+  notes: string | null;
+  url: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationStats = {
+  total: number;
+  byStatus: Record<string, number>;
+  recentActivity: { date: string; count: number }[];
+};
+
+export type GrammarCheckRecord = {
+  id: number;
+  resumeId: number;
+  score: number;
+  issuesCount: number;
+  issues: string;
+  summary: string;
+  createdAt: string;
+};
+
+export type ChatMessage = {
+  id: number;
+  sessionId: number;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+};
+
+export type SearchResult = {
+  type: string;
+  title: string;
+  subtitle: string;
+  url: string;
 };

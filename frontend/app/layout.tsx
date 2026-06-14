@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppNav } from "@/components/AppNav";
+import { Geist, Lora } from "next/font/google";
+import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const lora = Lora({ subsets: ["latin"], variable: "--font-heading" });
 
 export const metadata: Metadata = {
   title: "AI 简历优化平台",
@@ -13,10 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className="h-full antialiased">
+    <html lang="zh-CN" className={cn("h-full antialiased", geist.variable, lora.variable)}>
       <body className="min-h-full flex flex-col font-sans">
-        <AppNav />
-        <main className="flex-1">{children}</main>
+        <TooltipProvider>
+          <AppNav />
+          <main className="flex-1">{children}</main>
+          <Toaster />
+        </TooltipProvider>
       </body>
     </html>
   );

@@ -1,20 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import type { Resume } from "@/lib/types";
+import GenerateResumeDialog from "@/components/ai/GenerateResumeDialog";
+import { ChevronRight, Plus, Sparkles } from "lucide-react";
 
-export default function ResumesPage() {
+function ResumesPageContent() {
+  const searchParams = useSearchParams();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAiGenerate, setShowAiGenerate] = useState(false);
+
+  useEffect(() => { fetchResumes(); }, []);
 
   useEffect(() => {
-    fetchResumes();
-  }, []);
+    if (searchParams.get("ai") === "true") setShowAiGenerate(true);
+  }, [searchParams]);
 
   async function fetchResumes() {
     try {
@@ -42,91 +49,121 @@ export default function ResumesPage() {
     }
   }
 
+  async function handleDuplicate(e: React.MouseEvent, id: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    try { await apiPost<Resume>(`/api/resumes/${id}/copy`, {}); await fetchResumes(); }
+    catch (err) { setError(err instanceof Error ? err.message : "复制失败"); }
+  }
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">我的简历</h1>
-        <span className="text-sm text-zinc-500">{resumes.length} 份简历</span>
+    <div className="mx-auto max-w-6xl px-6 py-0">
+      {/* Masthead */}
+      <div className="border-b-[3px] border-double border-border py-6">
+        <p className="text-eyebrow mb-1">全部简历</p>
+        <div className="flex items-end justify-between">
+          <h1 className="text-display text-foreground">我的简历</h1>
+          <span className="font-heading text-2xl font-bold text-muted-foreground/15 tabular-nums">{resumes.length}</span>
+        </div>
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-          {error}
-        </div>
-      )}
-
-      {/* Create form */}
-      <div className="mb-8 flex gap-3">
+      {/* Create bar */}
+      <div className="flex gap-2 border-b border-border py-3">
         <input
-          className="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-          placeholder="输入新简历标题..."
+          className="flex-1 border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-primary focus:outline-none"
+          placeholder="输入新简历标题…"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleCreate()}
         />
         <button
+          onClick={() => setShowAiGenerate(true)}
+          className="inline-flex items-center gap-1.5 border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+        >
+          <Sparkles className="h-4 w-4" />
+          AI 生成
+        </button>
+        <button
           onClick={handleCreate}
           disabled={creating || !newTitle.trim()}
-          className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1.5 bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {creating ? "创建中..." : "新建简历"}
+          <Plus className="h-4 w-4" />
+          {creating ? "创建中…" : "新建"}
         </button>
       </div>
 
-      {/* Loading state */}
+      {error && (
+        <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>
+      )}
+
       {loading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse rounded-xl border border-zinc-200 p-5 dark:border-zinc-800">
-              <div className="h-4 w-3/4 rounded bg-zinc-200 dark:bg-zinc-700" />
-              <div className="mt-3 h-3 w-1/2 rounded bg-zinc-100 dark:bg-zinc-800" />
+            <div key={i} className="bg-card p-5 animate-pulse">
+              <div className="h-4 w-3/4 bg-muted" />
+              <div className="mt-3 h-3 w-1/2 bg-muted/50" />
             </div>
           ))}
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && resumes.length === 0 && (
-        <div className="rounded-xl border-2 border-dashed border-zinc-200 p-12 text-center dark:border-zinc-800">
-          <svg className="mx-auto h-10 w-10 text-zinc-300 dark:text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-          </svg>
-          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">还没有简历，在上方输入标题创建第一份</p>
+        <div className="flex flex-col items-center justify-center py-20">
+          <span className="font-heading text-6xl font-bold text-muted-foreground/20">空</span>
+          <p className="mt-2 text-sm text-muted-foreground">在上方输入标题创建第一份简历</p>
         </div>
       )}
 
-      {/* Resume grid */}
       {!loading && resumes.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {resumes.map((resume) => (
-            <Link
-              key={resume.id}
-              href={`/resumes/${resume.id}/edit`}
-              className="group rounded-xl border border-zinc-200 bg-white p-5 transition-all hover:border-blue-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-700"
-            >
-              <div className="flex items-start justify-between">
-                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate transition-colors">
-                  {resume.title}
-                </h2>
-                {resume.master && (
-                  <span className="shrink-0 ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    主版
+        <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-3">
+          {resumes.map((resume, i) => (
+            <div key={resume.id} className="group relative bg-card p-5 transition-colors hover:bg-muted/30">
+              <Link href={`/resumes/${resume.id}/edit`} className="block">
+                <div className="flex items-start gap-3">
+                  <span className="font-heading text-2xl font-bold leading-none text-muted-foreground/20 tabular-nums select-none">
+                    {String(i + 1).padStart(2, "0")}
                   </span>
-                )}
-              </div>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                更新于 {new Date(resume.updatedAt).toLocaleDateString("zh-CN")}
-              </p>
-              <div className="mt-3 flex items-center text-xs text-zinc-400 dark:text-zinc-500">
-                <span>点击编辑</span>
-                <svg className="ml-1 h-3 w-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-sm font-semibold text-foreground group-hover:text-primary truncate transition-colors">
+                      {resume.title}
+                    </h2>
+                    {resume.master && (
+                      <span className="mt-1 inline-block border border-primary/40 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                        主版
+                      </span>
+                    )}
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      更新于 {new Date(resume.updatedAt).toLocaleDateString("zh-CN")}
+                    </p>
+                    <div className="mt-2 flex items-center text-[11px] text-primary">
+                      <span>点击编辑</span>
+                      <ChevronRight className="ml-0.5 h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+              <button
+                onClick={(e) => handleDuplicate(e, resume.id)}
+                className="absolute right-3 top-3 border border-border px-2 py-0.5 text-[11px] text-muted-foreground opacity-0 transition-opacity hover:border-primary/40 hover:text-primary group-hover:opacity-100"
+                title="复制简历"
+              >
+                复制
+              </button>
+            </div>
           ))}
         </div>
       )}
+
+      {showAiGenerate && <GenerateResumeDialog onClose={() => setShowAiGenerate(false)} />}
     </div>
+  );
+}
+
+export default function ResumesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResumesPageContent />
+    </Suspense>
   );
 }

@@ -6,11 +6,11 @@ type KeywordListProps = {
 export function KeywordList({ keywords, variant }: KeywordListProps) {
   const pillClass =
     variant === "match"
-      ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
-      : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
+      ? "bg-success/15 text-success"
+      : "bg-destructive/10 text-destructive";
 
   if (keywords.length === 0) {
-    return <p className="text-sm text-zinc-500">无</p>;
+    return <p className="text-sm text-muted-foreground">无</p>;
   }
 
   return (

@@ -8,7 +8,7 @@ import type { AnalysisReport as AnalysisReportType } from "@/lib/types";
 
 export default function AnalysisPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-3xl p-6 text-sm text-zinc-500">加载中...</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-3xl p-6 text-sm text-muted-foreground">加载中...</div>}>
       <AnalysisPageContent />
     </Suspense>
   );
@@ -62,7 +62,7 @@ function AnalysisPageContent() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <p className="text-sm text-zinc-500">加载中...</p>
+        <p className="text-sm text-muted-foreground">加载中...</p>
       </div>
     );
   }
@@ -70,7 +70,7 @@ function AnalysisPageContent() {
   if (error) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+        <div className="rounded-md bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
       </div>
@@ -81,7 +81,7 @@ function AnalysisPageContent() {
 
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">
+      <h1 className="text-2xl font-bold text-foreground mb-6">
         JD 匹配分析报告
       </h1>
       <AnalysisReport
