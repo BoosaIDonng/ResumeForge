@@ -1,16 +1,41 @@
+# IDE
 .idea/
 .vscode/
+*.swp
+*.swo
+
+# Build outputs
 target/
 node_modules/
 .next/
 dist/
 build/
-tools/
+
+# Logs
 *.log
+
+# Environment
 .env
 .env.*
 !.env.example
-reference-projects/
+
+# Tools
+tools/
 .superpowers/
 tsconfig.tsbuildinfo
 next-env.d.ts
+
+# Test scripts (temporary)
+test-ai-features.ps1
+test-ai-features.sh
+
+# AI/Claude generated docs
+docs/superpowers/
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
+# Backend tests (optional - remove this block if you want to keep tests)
+# backend/src/test/
+
+# Reference projects
+reference-projects/
