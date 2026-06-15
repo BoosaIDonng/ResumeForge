@@ -1,1 +1,0 @@
-ALTER TABLE analysis_reports MODIFY COLUMN job_id BIGINT NULL;

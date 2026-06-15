@@ -1,1 +1,0 @@
-ALTER TABLE cover_letters MODIFY COLUMN content LONGTEXT NOT NULL;

@@ -4,8 +4,6 @@ import com.example.airesume.ai.AiClient;
 import com.example.airesume.ai.AiClientFactory;
 import com.example.airesume.ai.PromptType;
 import com.example.airesume.common.ApiException;
-import com.example.airesume.resume.ResumeEntity;
-import com.example.airesume.resume.ResumeService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,59 +24,23 @@ import org.springframework.stereotype.Service;
 public class AiEnrichmentService {
     private static final Logger log = LoggerFactory.getLogger(AiEnrichmentService.class);
     private final AiClientFactory clientFactory;
-    private final ResumeService resumeService;
     private final ObjectMapper objectMapper;
 
-    public AiEnrichmentService(AiClientFactory clientFactory, ResumeService resumeService, ObjectMapper objectMapper) {
+    public AiEnrichmentService(AiClientFactory clientFactory, ObjectMapper objectMapper) {
         this.clientFactory = clientFactory;
-        this.resumeService = resumeService;
         this.objectMapper = objectMapper;
     }
 
     /**
      * Analyze a resume to find weak descriptions and generate clarifying questions.
      */
-    public EnrichmentAnalysis analyze(Long resumeId, String provider, String apiKey, String baseUrl, String model) {
-        ResumeEntity resume = resumeService.get(resumeId);
+    public EnrichmentAnalysis analyze(String resumeData, String provider, String apiKey, String baseUrl, String model) {
         AiClient client = clientFactory.create(provider, apiKey, baseUrl, model);
 
         String systemPrompt = """
-            You are a professional resume analyst. Analyze this resume to identify items in Experience and Projects sections that have weak, vague, or incomplete descriptions.
+            You are a professional resume analyst. Analyze this resume to find weak descriptions and generate clarifying questions.
 
             IMPORTANT: Generate ALL output text (questions, placeholders, summaries, weakness reasons) in the same language as the resume. Chinese resume = Chinese output.
-
-            WEAK DESCRIPTION INDICATORS:
-            1. Generic phrases: "负责...", "参与了...", "协助...", "responsible for", "worked on", "helped with"
-            2. Missing metrics/impact: No numbers, percentages, dollar amounts, or measurable outcomes
-            3. Unclear scope: Vague about team size, project scale, user count, or responsibilities
-            4. No technologies/tools: Missing specific tech stack, tools, or methodologies used
-            5. Passive voice without ownership: Not clear what the candidate personally accomplished
-            6. Too brief: Single short bullet that doesn't explain the work
-
-            GOOD DESCRIPTION EXAMPLES:
-            - "Led migration of 15 microservices to Kubernetes, reducing deployment time by 60%%"
-            - "Built real-time analytics dashboard using React and D3.js, serving 10K daily users"
-            - "Architected payment processing system handling $2M monthly transactions"
-
-            TASK:
-            1. Review each Experience and Project item's description bullets
-            2. Identify items that would benefit from more detail
-            3. Generate a MAXIMUM of 6 questions total across ALL items (not per item)
-            4. Prioritize the most impactful questions that will yield the best improvements
-            5. If multiple items need enhancement, distribute questions wisely (e.g., 2-3 per item)
-            6. Questions should help extract: metrics, technologies, scope, impact, and specific contributions
-
-            IMPORTANT RULES:
-            - MAXIMUM 6 QUESTIONS TOTAL — this is a hard limit, never exceed it
-            - Only include items that genuinely need improvement
-            - If the resume is already strong, return empty arrays with a positive summary
-            - Use "exp_0", "exp_1" for experience items (based on array index)
-            - Use "proj_0", "proj_1" for project items (based on array index)
-            - Generate unique question IDs: "q_0", "q_1", "q_2", etc. (max q_5)
-            - Questions should be specific to the role/project context
-            - Keep questions conversational but professional
-            - Placeholder text should give concrete examples
-            - Prioritize quality over quantity — ask the most impactful questions first
 
             Resume Data:
             %s
@@ -107,14 +69,14 @@ public class AiEnrichmentService {
             }
 
             CRITICAL: Return ONLY valid JSON. No markdown, no code fences.
-            """.formatted(resume.getResumeData());
+            """.formatted(resumeData);
 
         try {
             String raw = client.completeJson(PromptType.RESUME_GENERATE,
                 "You are a professional resume analyst. Return ONLY valid JSON with no markdown, no code fences.", systemPrompt);
             return parseAnalysis(raw);
         } catch (Exception e) {
-            log.error("Enrichment analysis failed for resume {}", resumeId, e);
+            log.error("Enrichment analysis failed", e);
             throw new ApiException("ENRICHMENT_FAILED", "简历分析失败: " + e.getMessage());
         }
     }
@@ -122,9 +84,8 @@ public class AiEnrichmentService {
     /**
      * Generate enhanced bullets from user answers.
      */
-    public EnrichmentResult enhance(Long resumeId, List<EnrichmentRequest.AnswerItem> answers,
+    public EnrichmentResult enhance(String resumeData, List<EnrichmentRequest.AnswerItem> answers,
                                      String provider, String apiKey, String baseUrl, String model) {
-        ResumeEntity resume = resumeService.get(resumeId);
         AiClient client = clientFactory.create(provider, apiKey, baseUrl, model);
 
         // Group answers by item_id
@@ -139,7 +100,7 @@ public class AiEnrichmentService {
             List<EnrichmentRequest.AnswerItem> itemAnswers = entry.getValue();
 
             // Extract item info from resume data
-            Map<String, Object> itemInfo = extractItemFromResume(resume.getResumeData(), itemId);
+            Map<String, Object> itemInfo = extractItemFromResume(resumeData, itemId);
             if (itemInfo.isEmpty()) continue;
 
             // Build Q&A text
@@ -215,12 +176,10 @@ public class AiEnrichmentService {
     }
 
     /**
-     * Apply enhancements to the resume — append new bullets to existing descriptions.
+     * Apply enhancements to resumeData JSON — append new bullets to existing descriptions.
+     * Returns the modified resumeData JSON string.
      */
-    public void apply(Long resumeId, List<EnrichmentResult.EnhancedItem> enhancements) {
-        ResumeEntity resume = resumeService.get(resumeId);
-        String resumeData = resume.getResumeData();
-
+    public String apply(String resumeData, List<EnrichmentResult.EnhancedItem> enhancements) {
         try {
             JsonNode root = objectMapper.readTree(resumeData);
 
@@ -236,10 +195,9 @@ public class AiEnrichmentService {
                 }
             }
 
-            String updated = objectMapper.writeValueAsString(root);
-            resumeService.update(resume.getId(), resume.getTitle(), updated);
+            return objectMapper.writeValueAsString(root);
         } catch (Exception e) {
-            log.error("Failed to apply enhancements to resume {}", resumeId, e);
+            log.error("Failed to apply enhancements", e);
             throw new ApiException("APPLY_FAILED", "应用增强失败: " + e.getMessage());
         }
     }
@@ -258,9 +216,6 @@ public class AiEnrichmentService {
             if (index >= 0 && index < items.size()) {
                 JsonNode item = items.get(index);
                 if (item.has("description") && item.get("description").isArray()) {
-                    // We need to add new bullets — this requires creating a new array
-                    // Since JsonNode is immutable, we'll use a different approach
-                    // Actually, we need to work with the parent
                     var parentArray = (com.fasterxml.jackson.databind.node.ArrayNode) item.get("description");
                     for (String bullet : newBullets) {
                         parentArray.add(bullet);
@@ -274,16 +229,14 @@ public class AiEnrichmentService {
 
     /**
      * Regenerate a single item's description based on user feedback.
-     * Inspired by Resume-Matcher's REGENERATE_ITEM_PROMPT.
      */
-    public EnrichmentResult regenerateItem(Long resumeId, String itemType, String itemId,
+    public EnrichmentResult regenerateItem(String resumeData, String itemType, String itemId,
                                             String userInstruction, String provider, String apiKey,
                                             String baseUrl, String model) {
-        ResumeEntity resume = resumeService.get(resumeId);
         AiClient client = clientFactory.create(provider, apiKey, baseUrl, model);
 
         // Extract the current item from resume data
-        String currentDescription = extractItemDescription(resume.getResumeData(), itemType, itemId);
+        String currentDescription = extractItemDescription(resumeData, itemType, itemId);
 
         String prompt = """
             You are a professional resume writer. REWRITE the description of this resume item based on the user's feedback.
@@ -328,7 +281,7 @@ public class AiEnrichmentService {
             List<String> newBullets = (List<String>) result.getOrDefault("new_bullets", List.of());
 
             // Extract item info for the result
-            Map<String, Object> itemInfo = extractItemFromResume(resume.getResumeData(), itemId);
+            Map<String, Object> itemInfo = extractItemFromResume(resumeData, itemId);
             String title = (String) itemInfo.getOrDefault("title", "");
             String subtitle = (String) itemInfo.getOrDefault("subtitle", "");
             String resolvedItemType = (String) itemInfo.getOrDefault("item_type", itemType);
@@ -342,7 +295,7 @@ public class AiEnrichmentService {
             );
             return new EnrichmentResult(enhancements);
         } catch (Exception e) {
-            log.error("Failed to regenerate item {} for resume {}", itemId, resumeId, e);
+            log.error("Failed to regenerate item {}", itemId, e);
             throw new ApiException("REGENERATE_FAILED", "重新生成失败: " + e.getMessage());
         }
     }
@@ -444,15 +397,6 @@ public class AiEnrichmentService {
             s = s.substring(0, s.length() - 3);
         }
         return s.strip();
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<String> getListFromJson(Map<String, Object> itemInfo, String key) {
-        Object val = itemInfo.get(key);
-        if (val instanceof List<?> list) {
-            return list.stream().map(Object::toString).toList();
-        }
-        return List.of();
     }
 
     private Map<String, Object> extractItemFromResume(String resumeData, String itemId) {

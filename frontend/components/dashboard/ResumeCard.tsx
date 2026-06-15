@@ -4,15 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Resume } from "@/lib/types";
 import { MoreVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { calcCompleteness, parseResumeDataSafe, getPreviewSummary } from "@/lib/completeness";
 
 type Props = {
   resume: Resume;
   index: number;
-  onRename: (id: number, newTitle: string) => void;
-  onCopy: (id: number) => void;
-  onShare: (id: number) => void;
-  onDelete: (id: number) => void;
+  onRename: (id: string, newTitle: string) => void;
+  onCopy: (id: string) => void;
+  onShare: (id: string) => void;
+  onDelete: (id: string) => void;
 };
 
 const templateLabels: Record<string, string> = {
@@ -141,14 +142,14 @@ export default function ResumeCard({ resume, index, onRename, onCopy, onShare, o
 
         {/* Hover actions */}
         <div className="mt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-          <button onClick={(e) => { e.stopPropagation(); router.push(`/resumes/${resume.id}/edit`); }} className="text-[11px] text-muted-foreground hover:text-primary transition-colors py-1 px-1">编辑</button>
-          <button onClick={(e) => { e.stopPropagation(); onCopy(resume.id); }} className="text-[11px] text-muted-foreground hover:text-primary transition-colors py-1 px-1">复制</button>
-          <button onClick={(e) => { e.stopPropagation(); onShare(resume.id); }} className="text-[11px] text-muted-foreground hover:text-primary transition-colors py-1 px-1">分享</button>
+          <Button variant="ghost" size="xs" onClick={(e) => { e.stopPropagation(); router.push(`/resumes/${resume.id}/edit`); }} className="px-1 text-[11px] text-muted-foreground hover:bg-transparent hover:text-primary">编辑</Button>
+          <Button variant="ghost" size="xs" onClick={(e) => { e.stopPropagation(); onCopy(resume.id); }} className="px-1 text-[11px] text-muted-foreground hover:bg-transparent hover:text-primary">复制</Button>
+          <Button variant="ghost" size="xs" onClick={(e) => { e.stopPropagation(); onShare(resume.id); }} className="px-1 text-[11px] text-muted-foreground hover:bg-transparent hover:text-primary">分享</Button>
           <div className="flex-1" />
           <div className="relative" data-menu ref={menuRef}>
-            <button onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }} className="p-1.5 text-muted-foreground/60 hover:text-foreground transition-colors">
+            <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }} className="text-muted-foreground/60 hover:text-foreground">
               <MoreVertical className="h-3.5 w-3.5" />
-            </button>
+            </Button>
             {menuOpen && (
               <div className="absolute right-0 bottom-full z-20 mb-1 w-28 border border-border bg-card py-0.5">
                 <MenuItem label="重命名" onClick={() => { setMenuOpen(false); setEditing(true); }} />

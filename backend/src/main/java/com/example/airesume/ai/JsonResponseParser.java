@@ -1,6 +1,8 @@
 package com.example.airesume.ai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
@@ -64,14 +66,14 @@ public class JsonResponseParser {
         result = tryParse(repaired, type);
         if (result != null) return result;
 
-        throw new AiResponseFormatException("AI JSON 解析失败: 多步修复后仍无法解析", null);
-    }
+        // Step 6: Attempt to repair truncated JSON (output cut off by max_tokens limit)
+        String truncated = repairTruncatedJson(cleaned);
+        if (truncated != null) {
+            result = tryParse(truncated, type);
+            if (result != null) return result;
+        }
 
-    /**
-     * Parse a JSON array from text. Supports String[] result.
-     */
-    public <T> T parseArray(String text, Class<T> type) {
-        return parse(text, type);
+        throw new AiResponseFormatException("AI JSON 解析失败: 多步修复后仍无法解析", null);
     }
 
     private <T> T tryParse(String json, Class<T> type) {
@@ -114,5 +116,67 @@ public class JsonResponseParser {
         // Remove single-line comments
         repaired = repaired.replaceAll("//[^\n]*", "");
         return repaired;
+    }
+
+    /**
+     * 尝试修复被截断的 JSON（AI 输出因 max_tokens 限制被切断）。
+     * 补全未闭合的字符串，清理尾部残留，补全未闭合的括号。
+     */
+    private String repairTruncatedJson(String text) {
+        int start = text.indexOf('{');
+        if (start == -1) return null;
+
+        String json = text.substring(start);
+
+        boolean inString = false;
+        boolean escaped = false;
+        Deque<Character> stack = new ArrayDeque<>();
+
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\' && inString) {
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) continue;
+            if (c == '{' || c == '[') {
+                stack.push(c);
+            } else if (c == '}' && !stack.isEmpty() && stack.peek() == '{') {
+                stack.pop();
+            } else if (c == ']' && !stack.isEmpty() && stack.peek() == '[') {
+                stack.pop();
+            }
+        }
+
+        StringBuilder sb = new StringBuilder(json);
+
+        // 补全未闭合的字符串
+        if (inString) {
+            sb.append('"');
+        }
+
+        // 清理尾部残留的逗号和空白
+        String cleanedStr = sb.toString().replaceAll("[,\\s]+$", "");
+
+        // 冒号结尾说明键值被截断，补 null
+        if (cleanedStr.endsWith(":")) {
+            cleanedStr = cleanedStr + "null";
+        }
+
+        // 补全未闭合的括号（按栈逆序）
+        StringBuilder result = new StringBuilder(cleanedStr);
+        for (char open : stack) {
+            result.append(open == '{' ? '}' : ']');
+        }
+
+        return result.toString();
     }
 }

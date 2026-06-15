@@ -6,17 +6,17 @@ export type ApiResponse<T> = {
 };
 
 export type Resume = {
-  id: number;
+  id: string;
   title: string;
-  master: boolean;
+  master?: boolean;
   resumeData: string;
   createdAt: string;
   updatedAt: string;
 };
 
 export type Job = {
-  id: number;
-  resumeId: number;
+  id: string;
+  resumeId: string;
   title: string;
   company: string;
   description: string;
@@ -25,19 +25,19 @@ export type Job = {
 };
 
 export type AiTask = {
-  id: number;
+  id: string;
   taskType: string;
   status: "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED";
   progress: number;
   resultRefType?: string;
-  resultRefId?: number;
+  resultRefId?: string;
   errorMessage?: string;
 };
 
 export type AnalysisReport = {
-  id: number;
-  resumeId: number;
-  jobId: number;
+  id: string;
+  resumeId: string;
+  jobId: string;
   overallScore: number;
   atsScore: number;
   keywordMatches: string;
@@ -48,9 +48,9 @@ export type AnalysisReport = {
 };
 
 export type InterviewSession = {
-  id: number;
-  resumeId: number;
-  jobId: number;
+  id: string;
+  resumeId: string;
+  jobId: string;
   role: string;
   level: string;
   type: string;
@@ -61,8 +61,8 @@ export type InterviewSession = {
 };
 
 export type InterviewQuestion = {
-  id: number;
-  sessionId: number;
+  id: string;
+  sessionId: string;
   sortOrder: number;
   question: string;
   answer: string | null;
@@ -71,8 +71,8 @@ export type InterviewQuestion = {
 };
 
 export type InterviewFeedback = {
-  id: number;
-  sessionId: number;
+  id: string;
+  sessionId: string;
   totalScore: number;
   categoryScores: string;
   strengths: string;
@@ -82,16 +82,9 @@ export type InterviewFeedback = {
   createdAt: string;
 };
 
-export type AiConfig = {
-  baseUrl: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-};
-
 export type ShareInfo = {
-  id: number;
-  resumeId: number;
+  id: string;
+  resumeId: string;
   token: string;
   hasPassword: boolean;
   viewCount: number;
@@ -105,22 +98,15 @@ export type PublicShareData = {
   viewCount: number;
 };
 
-export type TemplateInfo = {
-  id: string;
-  name: string;
-  description: string;
-  preview?: string;
-};
-
 export type Application = {
-  id: number;
-  resumeId: number;
+  id: string;
+  resumeId: string;
   company: string;
   position: string;
   status: string;
-  appliedAt: string;
+  appliedDate: string;
   notes: string | null;
-  url: string | null;
+  jobUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -133,7 +119,7 @@ export type ApplicationStats = {
 
 export type GrammarCheckRecord = {
   id: number;
-  resumeId: number;
+  resumeId: string;
   score: number;
   issuesCount: number;
   issues: string;
@@ -141,9 +127,11 @@ export type GrammarCheckRecord = {
   createdAt: string;
 };
 
+export type DiagnosisRecord = GrammarCheckRecord;
+
 export type ChatMessage = {
   id: number;
-  sessionId: number;
+  sessionId: string;
   role: "user" | "assistant";
   content: string;
   createdAt: string;

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, Fragment } from "react";import { type LucideIcon, Bot, PenLine, FileText, Target, SpellCheck, Mail, Languages, BarChart3, Clock, Palette } from "lucide-react";
+import { useState, Fragment } from "react";
+import { useRouter } from "next/navigation";
+import { type LucideIcon, Bot, PenLine, Target, Stethoscope, Mail, Languages, Clock, Palette } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AiChatPanel from "./AiChatPanel";
-import GenerateResumeDialog from "./GenerateResumeDialog";
-import ParseResumeDialog from "./ParseResumeDialog";
+import CreateResumeDialog from "@/components/dashboard/CreateResumeDialog";
 import JdAnalysisDialog from "./JdAnalysisDialog";
-import GrammarCheckPanel from "./GrammarCheckPanel";
+import ResumeDiagnosisPanel from "./ResumeDiagnosisPanel";
 import CoverLetterDialog from "./CoverLetterDialog";
 import TranslateDialog from "./TranslateDialog";
-import QualityScorePanel from "./QualityScorePanel";
 import VersionHistoryPanel from "./VersionHistoryPanel";
 import DesignSettingsDialog from "./DesignSettingsDialog";
 import type { ResumeData } from "@/components/resume/resumeData";
@@ -18,17 +18,15 @@ type ActivePanel =
   | null
   | "chat"
   | "generate"
-  | "parse"
   | "jd"
-  | "grammar"
+  | "diagnosis"
   | "coverLetter"
   | "translate"
-  | "quality"
   | "versions"
   | "design";
 
 type Props = {
-  resumeId?: number;
+  resumeId?: string;
   resumeData?: string;
   onResumeUpdated?: () => void;
   designData?: ResumeData;
@@ -36,18 +34,18 @@ type Props = {
 };
 
 export default function AiToolbar({ resumeId, resumeData, onResumeUpdated, designData, onDesignChange }: Props) {
+  const router = useRouter();
   const [active, setActive] = useState<ActivePanel>(null);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const buttons: { key: ActivePanel; icon: LucideIcon; label: string; disabled?: boolean }[] = [
     { key: "chat", icon: Bot, label: "AI助手" },
     { key: "generate", icon: PenLine, label: "生成简历" },
-    { key: "parse", icon: FileText, label: "解析简历" },
     { key: "jd", icon: Target, label: "JD分析" },
-    { key: "grammar", icon: SpellCheck, label: "语法检查" },
+    { key: "diagnosis", icon: Stethoscope, label: "简历诊断" },
     { key: "coverLetter", icon: Mail, label: "求职信" },
     { key: "translate", icon: Languages, label: "翻译" },
-    { key: "quality", icon: BarChart3, label: "质量评分", disabled: !resumeId },
     { key: "versions", icon: Clock, label: "版本历史", disabled: !resumeId },
     { key: "design", icon: Palette, label: "设计设置" },
   ];
@@ -60,11 +58,15 @@ export default function AiToolbar({ resumeId, resumeData, onResumeUpdated, desig
             {btn.key === "design" && <span className="mx-0.5 h-5 w-px bg-border" />}
             <button
               disabled={btn.disabled}
-              onClick={() => !btn.disabled && setActive(btn.key)}
+              onClick={() => {
+                if (btn.disabled) return;
+                if (btn.key === "generate") { setCreateDialogOpen(true); return; }
+                setActive(btn.key);
+              }}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 btn.disabled
                   ? "opacity-40 cursor-not-allowed"
-                  : active === btn.key
+                  : (btn.key === "generate" ? createDialogOpen : active === btn.key)
                   ? "bg-primary/10 text-primary"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
@@ -85,12 +87,13 @@ export default function AiToolbar({ resumeId, resumeData, onResumeUpdated, desig
         onPendingMessageConsumed={() => setPendingMessage(null)}
       />
 
-      {active === "generate" && (
-        <GenerateResumeDialog onClose={() => setActive(null)} />
-      )}
-      {active === "parse" && (
-        <ParseResumeDialog onClose={() => setActive(null)} />
-      )}
+      <CreateResumeDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onCreated={(resume) => { setCreateDialogOpen(false); router.push(`/resumes/${resume.id}/edit`); }}
+        initialTab="ai"
+      />
+
       {active === "jd" && (
         <JdAnalysisDialog
           resumeId={resumeId}
@@ -102,8 +105,8 @@ export default function AiToolbar({ resumeId, resumeData, onResumeUpdated, desig
           }}
         />
       )}
-      {active === "grammar" && (
-        <GrammarCheckPanel
+      {active === "diagnosis" && (
+        <ResumeDiagnosisPanel
           resumeId={resumeId}
           resumeData={resumeData}
           onClose={() => setActive(null)}
@@ -124,19 +127,6 @@ export default function AiToolbar({ resumeId, resumeData, onResumeUpdated, desig
           onClose={() => setActive(null)}
         />
       )}
-
-      <Dialog open={active === "quality" && !!resumeId} onOpenChange={(open) => { if (!open) setActive(null); }}>
-        <DialogContent className="sm:max-w-[520px] p-0 flex flex-col max-h-[90vh]">
-          <DialogHeader className="p-4 border-b border-border shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" /> 简历质量评分
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto p-4">
-            {resumeId && <QualityScorePanel resumeId={resumeId} />}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={active === "versions" && !!resumeId} onOpenChange={(open) => { if (!open) setActive(null); }}>
         <DialogContent className="sm:max-w-[480px] p-0 flex flex-col max-h-[90vh]">

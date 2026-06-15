@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, UploadCloud, Plus, LayoutGrid, List } from "lucide-react";
+import { Plus, LayoutGrid, List } from "lucide-react";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
 import type { Resume } from "@/lib/types";
 import ResumeCard from "@/components/dashboard/ResumeCard";
 import ResumeListItem from "@/components/dashboard/ResumeListItem";
 import CreateResumeDialog from "@/components/dashboard/CreateResumeDialog";
-import ImportJsonDialog from "@/components/dashboard/ImportJsonDialog";
 import ShareDialog from "@/components/dashboard/ShareDialog";
 import TourOverlay from "@/components/dashboard/TourOverlay";
-import DocxImportButton from "@/components/ai/DocxImportButton";
 import { calcCompleteness, parseResumeDataSafe, getPreviewSummary } from "@/lib/completeness";
 
 type ViewMode = "grid" | "list";
@@ -37,31 +35,31 @@ export default function Dashboard() {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") return "grid";
+    const saved = localStorage.getItem(VIEW_KEY);
+    return saved === "grid" || saved === "list" ? saved : "grid";
+  });
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const [shareResumeId, setShareResumeId] = useState<number | null>(null);
+  const [shareResumeId, setShareResumeId] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(VIEW_KEY);
-    if (saved === "grid" || saved === "list") setViewMode(saved);
+    let cancelled = false;
+    (async () => {
+      try {
+        setError(null);
+        const data = await apiGet<Resume[]>("/api/resumes");
+        if (!cancelled) setResumes(data);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "加载失败");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
-
-  const loadResumes = useCallback(async () => {
-    try {
-      setError(null);
-      const data = await apiGet<Resume[]>("/api/resumes");
-      setResumes(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "加载失败");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadResumes(); }, [loadResumes]);
 
   function toggleView(mode: ViewMode) {
     setViewMode(mode);
@@ -83,7 +81,7 @@ export default function Dashboard() {
   const featuredCompleteness = featuredData ? calcCompleteness(featuredData) : 0;
   const featuredSummary = featured ? getPreviewSummary(featured.resumeData, 80) : "";
 
-  async function handleRename(id: number, newTitle: string) {
+  async function handleRename(id: string, newTitle: string) {
     try {
       const resume = resumes.find((r) => r.id === id);
       if (!resume) return;
@@ -94,7 +92,7 @@ export default function Dashboard() {
     }
   }
 
-  async function handleCopy(id: number) {
+  async function handleCopy(id: string) {
     try {
       const copy = await apiPost<Resume>(`/api/resumes/${id}/copy`, {});
       setResumes((prev) => [copy, ...prev]);
@@ -103,9 +101,9 @@ export default function Dashboard() {
     }
   }
 
-  function handleShare(id: number) { setShareResumeId(id); }
+  function handleShare(id: string) { setShareResumeId(id); }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     if (!confirm("确定要删除这份简历吗？此操作不可撤销。")) return;
     try {
       await apiDelete(`/api/resumes/${id}`);
@@ -119,8 +117,6 @@ export default function Dashboard() {
     setResumes((prev) => [resume, ...prev]);
     router.push(`/resumes/${resume.id}/edit`);
   }
-
-  function handleImported(resume: Resume) { setResumes((prev) => [resume, ...prev]); }
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-0">
@@ -136,22 +132,13 @@ export default function Dashboard() {
             className="inline-flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover">
             <Plus className="h-4 w-4" /> 新建简历
           </button>
-          <button data-tour="ai-generate" onClick={() => router.push("/resumes?ai=true")}
-            className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
-            <Sparkles className="h-4 w-4" /> AI 生成
-          </button>
-          <button data-tour="export" onClick={() => setImportOpen(true)}
-            className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
-            <UploadCloud className="h-4 w-4" /> 导入
-          </button>
-          <DocxImportButton />
         </div>
       </div>
 
       {/* Pull quote */}
       <div className="border-b border-border py-4">
         <blockquote className="border-l-2 border-primary pl-4 text-sm italic text-muted-foreground">
-          "简历是你的第一印象——让它说话。"
+          &ldquo;简历是你的第一印象——让它说话。&rdquo;
         </blockquote>
       </div>
 
@@ -320,8 +307,7 @@ export default function Dashboard() {
         </div>
       </footer>
 
-      <CreateResumeDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreate={handleCreated} />
-      <ImportJsonDialog open={importOpen} onClose={() => setImportOpen(false)} onImport={handleImported} />
+      <CreateResumeDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
       <ShareDialog open={shareResumeId !== null} resumeId={shareResumeId} onClose={() => setShareResumeId(null)} />
       <TourOverlay />
     </div>

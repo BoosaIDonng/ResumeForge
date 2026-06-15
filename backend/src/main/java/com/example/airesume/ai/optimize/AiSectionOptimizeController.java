@@ -1,6 +1,7 @@
 package com.example.airesume.ai.optimize;
 
 import com.example.airesume.common.ApiResponse;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -18,7 +19,7 @@ public class AiSectionOptimizeController {
 
     @PostMapping("/optimize-section")
     public ApiResponse<SectionOptimizeResponse> optimizeSection(
-            @RequestBody SectionOptimizeRequest request,
+            @Valid @RequestBody SectionOptimizeRequest request,
             @RequestHeader(value = "x-provider", required = false) String provider,
             @RequestHeader(value = "x-api-key", required = false) String apiKey,
             @RequestHeader(value = "x-base-url", required = false) String baseUrl,

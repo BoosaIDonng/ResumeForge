@@ -8,7 +8,7 @@ import type { AnalysisReport as AnalysisReportType } from "@/lib/types";
 
 export default function AnalysisPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-3xl p-6 text-sm text-muted-foreground">加载中...</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-0 text-sm text-muted-foreground">加载中...</div>}>
       <AnalysisPageContent />
     </Suspense>
   );
@@ -61,7 +61,7 @@ function AnalysisPageContent() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl px-6 py-0">
         <p className="text-sm text-muted-foreground">加载中...</p>
       </div>
     );
@@ -69,7 +69,7 @@ function AnalysisPageContent() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl px-6 py-0">
         <div className="rounded-md bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
@@ -80,10 +80,12 @@ function AnalysisPageContent() {
   if (!report) return null;
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="text-2xl font-bold text-foreground mb-6">
-        JD 匹配分析报告
-      </h1>
+    <div className="mx-auto max-w-3xl px-6 py-0">
+      {/* Masthead */}
+      <div className="border-b-[3px] border-double border-border py-6">
+        <p className="text-eyebrow mb-1">JD 分析</p>
+        <h1 className="text-display-sm text-foreground">JD 匹配分析报告</h1>
+      </div>
       <AnalysisReport
         report={report}
         onOptimize={handleOptimize}

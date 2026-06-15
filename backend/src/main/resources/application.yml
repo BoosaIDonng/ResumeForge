@@ -11,30 +11,15 @@ spring:
     suffix: .html
     mode: HTML
     encoding: UTF-8
-  datasource:
-    url: jdbc:mysql://localhost:3306/ai_resume?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: 123456
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-  flyway:
-    enabled: true
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-  data:
-    redis:
-      host: localhost
-      port: 6379
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
 
 ai:
   openai-compatible:
-    base-url: ${AI_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
-    api-key: ${AI_API_KEY:tp-cxx8tdtpfhzfra1yt71s3q0s8ihq0hrylhj78qhs8udp6kma}
-    model: ${AI_MODEL:mimo-v2.5-pro}
+    base-url: ${AI_BASE_URL:}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:}
     temperature: ${AI_TEMPERATURE:0.2}
     max-tokens: ${AI_MAX_TOKENS:4096}

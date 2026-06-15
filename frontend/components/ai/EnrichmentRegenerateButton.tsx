@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Sparkles, Loader2, Check, Lightbulb } from 'lucide-react';
 import { regenerateEnrichment, EnrichmentRegenerateResponse } from '@/lib/ai-api';
 
 interface Props {
-  resumeId: number;
+  resumeId: string;
   itemType: string;
   itemId: string;
   onApply: (content: string) => void;
@@ -51,7 +52,7 @@ export default function EnrichmentRegenerateButton({ resumeId, itemType, itemId,
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg rounded-none border">
+          <DialogContent className="sm:max-w-lg border">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="size-5 text-accent" />
@@ -63,7 +64,7 @@ export default function EnrichmentRegenerateButton({ resumeId, itemType, itemId,
           </DialogHeader>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">指令</label>
+            <Label className="text-xs text-muted-foreground">指令</Label>
             <Textarea
               placeholder="例如：更强调技术细节..."
               value={instruction}
@@ -75,7 +76,7 @@ export default function EnrichmentRegenerateButton({ resumeId, itemType, itemId,
           <Button
             onClick={handleRegenerate}
             disabled={loading || !instruction.trim()}
-            className="w-full rounded-none"
+            className="w-full"
           >
             {loading ? (
               <>
@@ -96,7 +97,7 @@ export default function EnrichmentRegenerateButton({ resumeId, itemType, itemId,
 
           {result && (
             <div className="space-y-3">
-              <div className="text-sm border rounded-none p-3 bg-muted/50">
+              <div className="text-sm border p-3 bg-muted/50">
                 <h4 className="text-xs font-medium text-muted-foreground mb-2">生成结果</h4>
                 <p className="text-foreground whitespace-pre-wrap">{result.enrichedContent}</p>
               </div>
@@ -105,7 +106,7 @@ export default function EnrichmentRegenerateButton({ resumeId, itemType, itemId,
                 <div className="space-y-2">
                   <h4 className="text-xs font-medium text-muted-foreground">修改详情</h4>
                   {result.changes.map((c, i) => (
-                    <div key={i} className="text-xs border rounded-none p-2.5 bg-muted/50">
+                    <div key={i} className="text-xs border p-2.5 bg-muted/50">
                       <div className="font-medium text-muted-foreground mb-1.5">{c.field}</div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -129,7 +130,7 @@ export default function EnrichmentRegenerateButton({ resumeId, itemType, itemId,
 
               <Button
                 onClick={() => { onApply(result.enrichedContent); setOpen(false); }}
-                className="w-full rounded-none"
+                className="w-full"
                 variant="default"
               >
                 <Check className="size-4" />

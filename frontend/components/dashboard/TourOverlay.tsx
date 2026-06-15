@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 
 const TOUR_KEY = "ai-resume-tour-completed";
 
@@ -141,12 +142,14 @@ export default function TourOverlay() {
           <span className="text-xs font-medium text-primary">
             {step + 1} / {steps.length}
           </span>
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={handleSkip}
-            className="text-xs text-muted-foreground/70 hover:text-muted-foreground"
+            className="text-muted-foreground/70 hover:bg-transparent hover:text-muted-foreground"
           >
             跳过
-          </button>
+          </Button>
         </div>
         <h3 className="mt-2 text-sm font-semibold text-foreground">
           {currentStep.title}
@@ -154,12 +157,12 @@ export default function TourOverlay() {
         <p className="mt-1 text-sm text-muted-foreground">
           {currentStep.description}
         </p>
-        <button
+        <Button
           onClick={handleNext}
-          className="mt-3 w-full rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+          className="mt-3 w-full"
         >
           {step < steps.length - 1 ? "下一步" : "完成"}
-        </button>
+        </Button>
       </div>
     </div>
   );

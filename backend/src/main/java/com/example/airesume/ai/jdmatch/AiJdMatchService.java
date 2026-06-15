@@ -6,15 +6,7 @@ import com.example.airesume.ai.JsonResponseParser;
 import com.example.airesume.ai.PromptType;
 import com.example.airesume.ai.refine.AiPhraseRemover;
 import com.example.airesume.ai.refine.KeywordMatcher;
-import com.example.airesume.analysis.AnalysisReportEntity;
-import com.example.airesume.analysis.AnalysisReportRepository;
 import com.example.airesume.common.ApiException;
-import com.example.airesume.job.JobService;
-import com.example.airesume.resume.ResumeEntity;
-import com.example.airesume.resume.ResumeRepository;
-import com.example.airesume.task.AiTaskEntity;
-import com.example.airesume.task.TaskService;
-import com.example.airesume.task.TaskType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -40,41 +32,25 @@ public class AiJdMatchService {
 
     private final AiClientFactory clientFactory;
     private final JsonResponseParser jsonParser;
-    private final ResumeRepository resumeRepository;
-    private final AnalysisReportRepository reportRepository;
     private final ObjectMapper objectMapper;
     private final KeywordMatcher keywordMatcher;
     private final AiPhraseRemover phraseRemover;
-    private final JobService jobService;
-    private final TaskService taskService;
 
     public AiJdMatchService(AiClientFactory clientFactory, JsonResponseParser jsonParser,
-                            ResumeRepository resumeRepository, AnalysisReportRepository reportRepository,
                             ObjectMapper objectMapper, KeywordMatcher keywordMatcher,
-                            AiPhraseRemover phraseRemover, JobService jobService,
-                            TaskService taskService) {
+                            AiPhraseRemover phraseRemover) {
         this.clientFactory = clientFactory;
         this.jsonParser = jsonParser;
-        this.resumeRepository = resumeRepository;
-        this.reportRepository = reportRepository;
         this.objectMapper = objectMapper;
         this.keywordMatcher = keywordMatcher;
         this.phraseRemover = phraseRemover;
-        this.jobService = jobService;
-        this.taskService = taskService;
     }
 
     public JdMatchResponse match(String provider, String apiKey, String baseUrl, String model,
-                                 Long resumeId, String jobDescription) {
+                                 String resumeText, String jobDescription) {
         AiClient client = clientFactory.create(provider, apiKey, baseUrl, model);
 
-        ResumeEntity resume = resumeRepository.findById(resumeId)
-            .orElseThrow(() -> new ApiException("RESUME_NOT_FOUND", "简历不存在"));
-
-        String resumeData = resume.getResumeData();
-
         // Step 1: Local keyword extraction and matching
-        String resumeText = keywordMatcher.extractAllText(resumeData);
         Set<String> jdKeywords = extractJdKeywords(jobDescription);
         double localMatchPercent = keywordMatcher.calculateMatchPercentage(resumeText, jdKeywords);
 
@@ -89,14 +65,14 @@ public class AiJdMatchService {
             }
         }
 
-        log.info("Local keyword match: {}/{} ({}%) for resume {}",
-                localMatched.size(), jdKeywords.size(), String.format("%.1f", localMatchPercent), resumeId);
+        log.info("Local keyword match: {}/{} ({}%)",
+                localMatched.size(), jdKeywords.size(), String.format("%.1f", localMatchPercent));
 
         // Step 2: Clean AI phrases before sending to AI
-        AiPhraseRemover.CleanResult cleanResult = phraseRemover.clean(resumeData, jobDescription);
+        AiPhraseRemover.CleanResult cleanResult = phraseRemover.clean(resumeText, jobDescription);
         if (!cleanResult.removedPhrases().isEmpty()) {
-            log.info("Removed {} AI phrases from resume {}: {}",
-                    cleanResult.removedPhrases().size(), resumeId, cleanResult.removedPhrases());
+            log.info("Removed {} AI phrases: {}",
+                    cleanResult.removedPhrases().size(), cleanResult.removedPhrases());
         }
 
         // Step 3: AI semantic analysis with cleaned resume + local keyword context
@@ -237,53 +213,22 @@ public class AiJdMatchService {
                 ? (int) Math.round(100.0 * totalMatchedAll / totalAll)
                 : keywordMatchPercentage;
 
-        // Persist to analysis_reports
-        try {
-            String keywordMatchesJson = objectMapper.writeValueAsString(finalKeywordMatches);
-            String missingKeywordsJson = objectMapper.writeValueAsString(finalMissingKeywords);
-            String suggestionsJson = objectMapper.writeValueAsString(aiResult.suggestions());
-
-            AnalysisReportEntity report = new AnalysisReportEntity(
-                resumeId,
-                null,
-                hybridScore,
-                aiResult.atsScore(),
-                keywordMatchesJson,
-                missingKeywordsJson,
-                suggestionsJson,
-                aiResult.summary()
-            );
-            report = reportRepository.save(report);
-
-            return new JdMatchResponse(
-                hybridScore,
-                finalKeywordMatches,
-                finalMissingKeywords,
-                aiResult.suggestions(),
-                aiResult.atsScore(),
-                aiResult.summary(),
-                report.getId(),
-                jdKw,
-                requiredSkillsMatched,
-                requiredSkillsMissing,
-                preferredSkillsMatched,
-                preferredSkillsMissing,
-                keywordMatchPercentage,
-                potentialMatchPercentage
-            );
-        } catch (Exception e) {
-            throw new ApiException("REPORT_SAVE_ERROR", "分析报告保存失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Submit a JD analysis as an async task.
-     * Creates a temporary Job entity from the raw JD text so the worker can load it by jobId.
-     */
-    public AiTaskEntity submitAsync(Long resumeId, String jobDescription) {
-        // Create a temporary Job from the JD text so handleJdAnalysis can load it
-        var job = jobService.create(resumeId, "临时分析", "", jobDescription);
-        return taskService.create(TaskType.JD_ANALYSIS, resumeId, job.getId());
+        return new JdMatchResponse(
+            hybridScore,
+            finalKeywordMatches,
+            finalMissingKeywords,
+            aiResult.suggestions(),
+            aiResult.atsScore(),
+            aiResult.summary(),
+            null,
+            jdKw,
+            requiredSkillsMatched,
+            requiredSkillsMissing,
+            preferredSkillsMatched,
+            preferredSkillsMissing,
+            keywordMatchPercentage,
+            potentialMatchPercentage
+        );
     }
 
     /**

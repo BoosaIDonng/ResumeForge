@@ -12,7 +12,7 @@ export function ScoreBadge({ label, score }: ScoreBadgeProps) {
         : "bg-destructive/10 text-destructive";
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${color}`}>
+    <span className={`inline-flex items-center gap-1 border border-border px-2 py-0.5 text-sm font-medium tabular-nums ${color}`}>
       {label}: {score}
     </span>
   );

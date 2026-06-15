@@ -3,27 +3,19 @@ package com.example.airesume.ai.coverletter;
 import com.example.airesume.ai.AiClient;
 import com.example.airesume.ai.AiClientFactory;
 import com.example.airesume.ai.PromptType;
-import com.example.airesume.common.ApiException;
-import com.example.airesume.resume.ResumeEntity;
-import com.example.airesume.resume.ResumeRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AiCoverLetterService {
     private final AiClientFactory clientFactory;
-    private final ResumeRepository resumeRepository;
 
-    public AiCoverLetterService(AiClientFactory clientFactory, ResumeRepository resumeRepository) {
+    public AiCoverLetterService(AiClientFactory clientFactory) {
         this.clientFactory = clientFactory;
-        this.resumeRepository = resumeRepository;
     }
 
     public CoverLetterGenResponse generate(String provider, String apiKey, String baseUrl, String model,
-                                           Long resumeId, String jobDescription, String tone, String language) {
+                                           String resumeText, String jobDescription, String tone, String language) {
         AiClient client = clientFactory.create(provider, apiKey, baseUrl, model);
-
-        ResumeEntity resume = resumeRepository.findById(resumeId)
-            .orElseThrow(() -> new ApiException("RESUME_NOT_FOUND", "简历不存在"));
 
         String resolvedTone = (tone != null && !tone.isBlank()) ? tone : "formal";
         String lang = (language != null && !language.isBlank()) ? language : "zh";
@@ -57,7 +49,7 @@ public class AiCoverLetterService {
             ---
 
             职位描述:
-            %s""".formatted(resume.getResumeData(), jobDescription);
+            %s""".formatted(resumeText, jobDescription);
 
         String response = client.completeText(PromptType.COVER_LETTER_GENERATE, systemPrompt, userPrompt);
 

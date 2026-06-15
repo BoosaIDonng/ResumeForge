@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiPost } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import type { AiTask } from "@/lib/types";
 
 type TaskProgressProps = {
-  taskId: number;
+  taskId: string | number;
   onComplete?: () => void;
-  onRetry?: (newTaskId: number) => void;
+  onRetry?: (newTaskId: string | number) => void;
 };
 
 export function TaskProgress({ taskId, onComplete, onRetry }: TaskProgressProps) {
@@ -24,12 +25,12 @@ export function TaskProgress({ taskId, onComplete, onRetry }: TaskProgressProps)
 
     function connect() {
       if (closed) return;
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
       eventSource = new EventSource(`${baseUrl}/api/tasks/${taskId}/events`);
 
       eventSource.onmessage = (event) => {
         retriesRef.current = 0;
-        const data = JSON.parse(event.data) as { taskId: number; status: string; progress: number };
+        const data = JSON.parse(event.data) as { taskId: string | number; status: string; progress: number };
         setProgress(data.progress);
         setStatus(data.status);
 
@@ -53,7 +54,7 @@ export function TaskProgress({ taskId, onComplete, onRetry }: TaskProgressProps)
     connect();
 
     if (status === "FAILED") {
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"}/api/tasks/${taskId}`)
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"}/api/tasks/${taskId}`)
         .then((res) => res.json())
         .then((body: { data?: AiTask }) => {
           if (body.data?.errorMessage) setErrorMessage(body.data.errorMessage);
@@ -110,13 +111,13 @@ export function TaskProgress({ taskId, onComplete, onRetry }: TaskProgressProps)
               {errorMessage}
             </p>
           )}
-          <button
+          <Button
             onClick={handleRetry}
             disabled={retrying}
-            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full"
           >
             {retrying ? "重试中..." : "重试任务"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

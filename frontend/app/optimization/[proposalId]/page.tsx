@@ -26,7 +26,7 @@ type Proposal = {
 
 export default function OptimizationProposalPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-3xl p-6 text-sm text-muted-foreground">加载中...</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-0 text-sm text-muted-foreground">加载中...</div>}>
       <OptimizationContent />
     </Suspense>
   );
@@ -86,10 +86,12 @@ function OptimizationContent() {
 
   if (fromTask && !proposal) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
-        <h1 className="text-2xl font-bold text-foreground mb-6">
-          生成优化方案中
-        </h1>
+      <div className="mx-auto max-w-3xl px-6 py-0">
+        {/* Masthead */}
+        <div className="border-b-[3px] border-double border-border py-6">
+          <p className="text-eyebrow mb-1">优化方案</p>
+          <h1 className="text-display-sm text-foreground">生成优化方案中</h1>
+        </div>
         <TaskProgress
           taskId={Number(proposalId)}
           onComplete={handleTaskComplete}
@@ -100,7 +102,7 @@ function OptimizationContent() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl px-6 py-0">
         <p className="text-sm text-muted-foreground">加载中...</p>
       </div>
     );
@@ -108,7 +110,7 @@ function OptimizationContent() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl px-6 py-0">
         <div className="rounded-md bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
@@ -127,20 +129,24 @@ function OptimizationContent() {
   const isApplied = proposal.status === "APPLIED";
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          优化方案
-        </h1>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-medium ${
-            isApplied
-              ? "bg-success/10 text-success"
-              : "bg-warning/10 text-warning"
-          }`}
-        >
-          {proposal.status}
-        </span>
+    <div className="mx-auto max-w-3xl px-6 py-0">
+      {/* Masthead */}
+      <div className="border-b-[3px] border-double border-border py-6">
+        <p className="text-eyebrow mb-1">优化方案</p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-display-sm text-foreground">
+            优化方案
+          </h1>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              isApplied
+                ? "bg-success/10 text-success"
+                : "bg-warning/10 text-warning"
+            }`}
+          >
+            {proposal.status}
+          </span>
+        </div>
       </div>
 
       <ChangePreview changes={changes} rejected={rejectedChanges} />

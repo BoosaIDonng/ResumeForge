@@ -1,1 +1,0 @@
-ALTER TABLE resumes MODIFY COLUMN resume_data LONGTEXT NOT NULL;

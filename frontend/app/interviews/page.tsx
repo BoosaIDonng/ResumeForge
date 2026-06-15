@@ -5,12 +5,13 @@ import Link from "next/link";
 import { apiGet, apiDelete } from "@/lib/api";
 import type { InterviewSession } from "@/lib/types";
 import { Plus, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 export default function InterviewsPage() {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -35,7 +36,7 @@ export default function InterviewsPage() {
 
   const allSelected = sessions.length > 0 && selected.size === sessions.length;
 
-  function toggleSelect(id: number) {
+  function toggleSelect(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -52,7 +53,7 @@ export default function InterviewsPage() {
     }
   }
 
-  async function handleDelete(e: React.MouseEvent, id: number) {
+  async function handleDelete(e: React.MouseEvent, id: string) {
     e.preventDefault();
     e.stopPropagation();
     if (!confirm("确定要删除这条面试记录吗？此操作不可撤销。")) return;
@@ -114,7 +115,7 @@ export default function InterviewsPage() {
       {/* Toolbar — select all + batch actions */}
       {!loading && sessions.length > 0 && (
         <div className="flex items-center justify-between border-b border-border py-2">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+          <Label className="text-muted-foreground cursor-pointer">
             <input
               type="checkbox"
               checked={allSelected}
@@ -125,7 +126,7 @@ export default function InterviewsPage() {
             {selected.size > 0 && (
               <span className="text-xs text-muted-foreground">（已选 {selected.size} 项）</span>
             )}
-          </label>
+          </Label>
           <div className="flex items-center gap-2">
             {selected.size > 0 && (
               <button

@@ -1,15 +1,12 @@
 package com.example.airesume.ai.diff;
 
 import com.example.airesume.common.ApiException;
-import com.example.airesume.resume.ResumeEntity;
-import com.example.airesume.resume.ResumeService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +21,6 @@ public class ResumeDiffService {
     private static final Logger log = LoggerFactory.getLogger(ResumeDiffService.class);
 
     private final ObjectMapper objectMapper;
-    private final ResumeService resumeService;
 
     // Path whitelist — only these paths may be modified
     private static final List<Pattern> ALLOWED_PATHS = List.of(
@@ -49,9 +45,8 @@ public class ResumeDiffService {
         "years", "company", "institution", "title", "degree", "name", "role", "id"
     );
 
-    public ResumeDiffService(ObjectMapper objectMapper, ResumeService resumeService) {
+    public ResumeDiffService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-        this.resumeService = resumeService;
     }
 
     /**
@@ -88,23 +83,6 @@ public class ResumeDiffService {
         } catch (Exception e) {
             throw new ApiException("DIFF_APPLY_FAILED", "应用变更失败: " + e.getMessage());
         }
-    }
-
-    /**
-     * Load a resume by ID, apply changes, and save the result.
-     */
-    public DiffApplyResult applyChangesToResume(Long resumeId, List<ResumeChange> changes) {
-        ResumeEntity resume = resumeService.get(resumeId);
-        String resumeJson = resume.getResumeData();
-
-        DiffApplyResult result = applyChanges(resumeJson, changes);
-
-        if (!result.applied().isEmpty()) {
-            resumeService.update(resume.getId(), resume.getTitle(), result.updatedResumeJson());
-            log.info("Applied {} changes to resume {}", result.applied().size(), resumeId);
-        }
-
-        return result;
     }
 
     // ---------------------------------------------------------------

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { getAIHeaders } from "@/lib/ai-settings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Target, Loader2, Lightbulb, Building2, Briefcase, BarChart3, Wand2 } from "lucide-react";
 
 type AnalysisResult = {
@@ -28,7 +30,7 @@ type AnalysisResult = {
 };
 
 type Props = {
-  resumeId?: number;
+  resumeId?: string;
   resumeData?: string;
   onClose: () => void;
   onSendToChat?: (message: string) => void;
@@ -36,33 +38,47 @@ type Props = {
 
 export default function JdAnalysisDialog({ resumeId, resumeData, onClose, onSendToChat }: Props) {
   const [jobDescription, setJobDescription] = useState("");
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<AnalysisResult | null>(null);
 
   async function handleAnalyze() {
     if (!jobDescription.trim()) return;
-
-    setError("");
+    if (!resumeData) {
+      setError("缺少简历数据，无法分析");
+      return;
+    }
     setLoading(true);
+    setError("");
     setResult(null);
     try {
-      const headers = getAIHeaders();
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
       const res = await fetch(`${API_BASE}/api/ai/jd-match`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({
-          resumeId,
-          resumeData,
-          jobDescription: jobDescription.trim(),
-        }),
+        headers: { "Content-Type": "application/json", ...getAIHeaders() },
+        body: JSON.stringify({ resumeText: resumeData, jobDescription: jobDescription.trim() }),
       });
       const body = await res.json();
       if (!res.ok || !body.success) throw new Error(body.message || "分析失败");
-      setResult(body.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "分析失败，请重试");
+      const r = body.data;
+      const parsed: AnalysisResult = {
+        overallScore: r.overallScore,
+        atsScore: r.atsScore,
+        keywordMatches: Array.isArray(r.keywordMatches) ? r.keywordMatches : [],
+        missingKeywords: Array.isArray(r.missingKeywords) ? r.missingKeywords : [],
+        jdKeywords: r.jdKeywords,
+        requiredSkillsMatched: r.requiredSkillsMatched,
+        requiredSkillsMissing: r.requiredSkillsMissing,
+        preferredSkillsMatched: r.preferredSkillsMatched,
+        preferredSkillsMissing: r.preferredSkillsMissing,
+        keywordMatchPercentage: r.keywordMatchPercentage,
+        potentialMatchPercentage: r.potentialMatchPercentage,
+        suggestions: Array.isArray(r.suggestions) ? r.suggestions : [],
+        summary: r.summary,
+      };
+      setResult(parsed);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "分析失败");
     } finally {
       setLoading(false);
     }
@@ -72,7 +88,6 @@ export default function JdAnalysisDialog({ resumeId, resumeData, onClose, onSend
     if (!result || !onSendToChat) return;
     const parts: string[] = [];
 
-    // Missing keywords
     const allMissing = [
       ...(result.requiredSkillsMissing ?? []),
       ...(result.preferredSkillsMissing ?? []),
@@ -84,7 +99,6 @@ export default function JdAnalysisDialog({ resumeId, resumeData, onClose, onSend
       parts.push(`缺失关键词：${allMissing.join("、")}`);
     }
 
-    // Suggestions
     if (result.suggestions.length > 0) {
       const list = result.suggestions
         .map((s, i) => `${i + 1}. [${s.section}] "${s.current}" → "${s.suggested}"`)
@@ -105,9 +119,6 @@ export default function JdAnalysisDialog({ resumeId, resumeData, onClose, onSend
     return "text-destructive bg-destructive/10";
   }
 
-  const inputClass =
-    "w-full border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:bg-card focus:outline-none";
-
   const hasResult = result !== null || loading;
   const dialogSize = hasResult
     ? "sm:max-w-[1000px] w-[95vw]"
@@ -123,11 +134,11 @@ export default function JdAnalysisDialog({ resumeId, resumeData, onClose, onSend
         </DialogHeader>
         <div className={`flex-1 min-h-0 overflow-y-auto ${hasResult ? "p-5 space-y-4" : "p-4"}`}>
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <Label className="mb-1 block text-xs text-muted-foreground">
               粘贴职位描述 <span className="text-destructive">*</span>
-            </label>
-            <textarea
-              className={`${inputClass} min-h-[100px] resize-y`}
+            </Label>
+            <Textarea
+              className="min-h-[100px] resize-y"
               placeholder="将目标职位的 JD 粘贴到这里..."
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
@@ -149,8 +160,16 @@ export default function JdAnalysisDialog({ resumeId, resumeData, onClose, onSend
             )}
           </Button>
 
+          {loading && (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <p className="text-sm text-muted-foreground">正在分析 JD 匹配度...</p>
+            </div>
+          )}
+
           {error && (
-            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
+            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
           )}
 
           {result && (

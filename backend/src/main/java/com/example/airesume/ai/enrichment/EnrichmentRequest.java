@@ -3,7 +3,7 @@ package com.example.airesume.ai.enrichment;
 import java.util.List;
 
 public record EnrichmentRequest(
-    Long resumeId,
+    String resumeData,
     List<AnswerItem> answers
 ) {
     public record AnswerItem(

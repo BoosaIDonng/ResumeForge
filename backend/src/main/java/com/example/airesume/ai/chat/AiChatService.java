@@ -4,9 +4,6 @@ import com.example.airesume.ai.AiClient;
 import com.example.airesume.ai.AiClientFactory;
 import com.example.airesume.ai.JsonResponseParser;
 import com.example.airesume.ai.PromptType;
-import com.example.airesume.common.ApiException;
-import com.example.airesume.resume.ResumeEntity;
-import com.example.airesume.resume.ResumeRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,23 +17,19 @@ import org.springframework.stereotype.Service;
 public class AiChatService {
     private final AiClientFactory clientFactory;
     private final JsonResponseParser jsonParser;
-    private final ResumeRepository resumeRepository;
 
-    public AiChatService(AiClientFactory clientFactory, JsonResponseParser jsonParser, ResumeRepository resumeRepository) {
+    public AiChatService(AiClientFactory clientFactory, JsonResponseParser jsonParser) {
         this.clientFactory = clientFactory;
         this.jsonParser = jsonParser;
-        this.resumeRepository = resumeRepository;
     }
 
     public ChatResponse chat(String provider, String apiKey, String baseUrl, String model,
-                             Long resumeId, String message, List<ChatMessage> history) {
+                             String resumeData, String message, List<ChatMessage> history) {
         AiClient client = clientFactory.create(provider, apiKey, baseUrl, model);
 
         String resumeContext = "";
-        if (resumeId != null) {
-            ResumeEntity resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() -> new ApiException("RESUME_NOT_FOUND", "简历不存在"));
-            resumeContext = "\n\n当前简历内容:\n" + resume.getResumeData();
+        if (resumeData != null && !resumeData.isBlank()) {
+            resumeContext = "\n\n当前简历内容:\n" + resumeData;
         }
 
         String systemPrompt = "你是简历优化专家助手。根据用户的简历内容提供具体、可操作的建议。" +

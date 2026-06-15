@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Palette } from "lucide-react";
 import type { ResumeData } from "@/components/resume/resumeData";
 
@@ -65,7 +66,7 @@ export default function DesignSettingsDialog({ open, onClose, data, onChange }: 
 
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-xs font-medium text-muted-foreground">模板风格</label>
+            <Label className="mb-2 block text-xs text-muted-foreground">模板风格</Label>
             <div className="grid grid-cols-2 gap-2">
               {TEMPLATES.map((t) => (
                 <button
@@ -84,7 +85,7 @@ export default function DesignSettingsDialog({ open, onClose, data, onChange }: 
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-medium text-muted-foreground">主色调</label>
+            <Label className="mb-2 block text-xs text-muted-foreground">主色调</Label>
             <div className="flex flex-wrap items-center gap-2">
               {PRESET_COLORS.map((c) => (
                 <button

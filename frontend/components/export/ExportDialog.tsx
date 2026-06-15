@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { resumeStorage } from "@/lib/storage";
+import { getTemplates } from "@/lib/api";
 
 type Template = {
   id: string;
@@ -18,12 +21,12 @@ type Template = {
 };
 
 type Props = {
-  resumeId: number;
+  resumeId: string;
   open: boolean;
   onClose: () => void;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export default function ExportDialog({ resumeId, open, onClose }: Props) {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -37,12 +40,8 @@ export default function ExportDialog({ resumeId, open, onClose }: Props) {
     if (!open) return;
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/api/templates`)
-      .then((res) => {
-        if (!res.ok) throw new Error("加载模板失败");
-        return res.json();
-      })
-      .then((data: Template[]) => setTemplates(data))
+    getTemplates()
+      .then((data) => setTemplates(Array.isArray(data) ? data : []))
       .catch((err) => setError(err instanceof Error ? err.message : "加载模板失败"))
       .finally(() => setLoading(false));
   }, [open]);
@@ -50,10 +49,20 @@ export default function ExportDialog({ resumeId, open, onClose }: Props) {
   async function handleExport() {
     setExporting(true);
     try {
-      let url = `${API_BASE}/api/resumes/${resumeId}/export?format=pdf`;
-      if (selectedTemplate) url += `&template=${selectedTemplate}`;
-      if (fitOnePage) url += `&fitOnePage=true`;
-      const res = await fetch(url);
+      // Fetch resume data from localStorage
+      const resume = resumeStorage.getById(resumeId);
+      if (!resume) throw new Error("简历不存在");
+
+      const res = await fetch(`${API_BASE}/api/resumes/export/pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeData: typeof resume.resumeData === 'string' ? resume.resumeData : JSON.stringify(resume.resumeData),
+          title: resume.title,
+          template: selectedTemplate || undefined,
+          fitOnePage,
+        }),
+      });
       if (!res.ok) throw new Error("导出失败");
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
@@ -84,9 +93,9 @@ export default function ExportDialog({ resumeId, open, onClose }: Props) {
 
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-xs font-medium text-muted-foreground">
+            <Label className="mb-2 block text-xs text-muted-foreground">
               选择模板
-            </label>
+            </Label>
             {loading && (
               <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -117,9 +126,9 @@ export default function ExportDialog({ resumeId, open, onClose }: Props) {
           </div>
 
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-muted-foreground">
+            <Label className="text-xs text-muted-foreground">
               单页模式
-            </label>
+            </Label>
             <button
               role="switch"
               aria-checked={fitOnePage}

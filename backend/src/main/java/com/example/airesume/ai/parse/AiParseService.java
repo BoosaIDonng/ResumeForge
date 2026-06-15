@@ -6,8 +6,13 @@ import com.example.airesume.ai.JsonResponseParser;
 import com.example.airesume.ai.PromptType;
 import com.example.airesume.common.ApiException;
 import com.example.airesume.resume.ResumeData;
+import java.io.InputStream;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,10 +34,15 @@ public class AiParseService {
 
         if (contentType != null && contentType.equals("application/pdf")) {
             text = extractTextFromPdf(file);
+        } else if (contentType != null && (
+                contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                || contentType.equals("application/msword")
+                || (file.getOriginalFilename() != null && file.getOriginalFilename().endsWith(".docx")))) {
+            text = extractTextFromDocx(file);
         } else if (contentType != null && contentType.startsWith("image/")) {
-            throw new ApiException("IMAGE_OCR_NOT_SUPPORTED", "图片 OCR 解析暂不支持，请上传 PDF 文件");
+            throw new ApiException("IMAGE_OCR_NOT_SUPPORTED", "图片 OCR 解析暂不支持，请上传 PDF 或 DOCX 文件");
         } else {
-            throw new ApiException("UNSUPPORTED_FILE_TYPE", "不支持的文件格式，请上传 PDF 文件");
+            throw new ApiException("UNSUPPORTED_FILE_TYPE", "不支持的文件格式，请上传 PDF 或 DOCX 文件");
         }
 
         if (text.isBlank()) {
@@ -132,6 +142,29 @@ public class AiParseService {
             return stripper.getText(document);
         } catch (Exception e) {
             throw new ApiException("PDF_PARSE_ERROR", "PDF 文本提取失败: " + e.getMessage());
+        }
+    }
+
+    private String extractTextFromDocx(MultipartFile file) {
+        try (InputStream is = file.getInputStream(); XWPFDocument doc = new XWPFDocument(is)) {
+            StringBuilder sb = new StringBuilder();
+            for (XWPFParagraph para : doc.getParagraphs()) {
+                String text = para.getText();
+                if (text != null && !text.isBlank()) {
+                    sb.append(text).append("\n");
+                }
+            }
+            doc.getTables().forEach(table -> {
+                table.getRows().forEach(row -> {
+                    row.getTableCells().forEach(cell -> {
+                        sb.append(cell.getText()).append("\t");
+                    });
+                    sb.append("\n");
+                });
+            });
+            return sb.toString().trim();
+        } catch (Exception e) {
+            throw new ApiException("DOCX_PARSE_ERROR", "DOCX 文本提取失败: " + e.getMessage());
         }
     }
 }

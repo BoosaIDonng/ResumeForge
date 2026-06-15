@@ -18,8 +18,8 @@ public class DiffController {
 
     @PostMapping("/apply")
     public ApiResponse<DiffApplyResult> apply(@Valid @RequestBody DiffApplyRequest request) {
-        DiffApplyResult result = diffService.applyChangesToResume(
-            request.resumeId(), request.changes()
+        DiffApplyResult result = diffService.applyChanges(
+            request.resumeDataJson(), request.changes()
         );
         return ApiResponse.ok(result);
     }

@@ -18,7 +18,7 @@ export default function InterviewSessionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [feedbackTaskId, setFeedbackTaskId] = useState<number | null>(null);
+  const [feedbackTaskId, setFeedbackTaskId] = useState<string | null>(null);
   const [generatingFeedback, setGeneratingFeedback] = useState(false);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function InterviewSessionPage() {
   }, [id]);
 
   const handleAnswer = useCallback(
-    async (questionId: number, answer: string) => {
+    async (questionId: string, answer: string) => {
       await apiPost(`/api/interviews/${id}/answers`, { questionId, answer });
       setQuestions((prev) =>
         prev.map((q) => (q.id === questionId ? { ...q, answer, answeredAt: new Date().toISOString() } : q))
@@ -53,11 +53,16 @@ export default function InterviewSessionPage() {
   const handleGenerateFeedback = async () => {
     setGeneratingFeedback(true);
     try {
-      const result = await apiPost<{ taskId: number; status: string }>(
+      const result = await apiPost<{ taskId: string | null; status: string }>(
         `/api/interviews/${id}/feedback`,
         {}
       );
-      setFeedbackTaskId(result.taskId);
+      if (result.taskId) {
+        setFeedbackTaskId(result.taskId);
+      } else {
+        // No task system in localStorage mode - redirect to report directly
+        router.push(`/interviews/${id}/report`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "生成反馈失败");
       setGeneratingFeedback(false);
@@ -78,7 +83,7 @@ export default function InterviewSessionPage() {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto py-12 px-4">
+      <div className="mx-auto max-w-3xl px-6 py-0">
         <p className="text-destructive">{error}</p>
       </div>
     );
@@ -86,8 +91,8 @@ export default function InterviewSessionPage() {
 
   if (feedbackTaskId) {
     return (
-      <div className="max-w-lg mx-auto py-12 px-4">
-        <h1 className="text-2xl font-bold text-foreground mb-6">
+      <div className="mx-auto max-w-3xl px-6 py-0">
+        <h1 className="text-display-sm text-foreground mb-6">
           正在生成面试反馈...
         </h1>
         <TaskProgress taskId={feedbackTaskId} onComplete={handleFeedbackComplete} />
@@ -101,14 +106,18 @@ export default function InterviewSessionPage() {
   const currentQuestion = questions[currentIndex];
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-4">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-foreground">
-          {session?.role} - {session?.type}
-        </h1>
-        <span className="text-sm font-medium text-muted-foreground">
-          题目 {currentIndex + 1}/{questions.length}
-        </span>
+    <div className="mx-auto max-w-3xl px-6 py-0">
+      {/* Masthead */}
+      <div className="border-b-[3px] border-double border-border py-6">
+        <p className="text-eyebrow mb-1">模拟面试</p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-display-sm text-foreground">
+            {session?.role} - {session?.type}
+          </h1>
+          <span className="text-sm font-medium text-muted-foreground">
+            题目 {currentIndex + 1}/{questions.length}
+          </span>
+        </div>
       </div>
 
       {/* Progress bar */}

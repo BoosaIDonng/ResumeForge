@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Sparkles, ChevronRight, Check, BarChart3, Key, Scissors, Target, Loader2, Lightbulb } from 'lucide-react';
 import { optimizeSection, SectionOptimizeResponse, SectionOptimizeChange } from '@/lib/ai-api';
 
@@ -89,7 +90,7 @@ export default function SectionOptimizeButton({ sectionType, currentContent, onA
 
           {/* Goal selector */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">优化目标</label>
+            <Label className="text-xs text-muted-foreground">优化目标</Label>
             <div className="flex flex-wrap gap-1.5">
               {GOALS.map(g => (
                 <Button
@@ -108,7 +109,7 @@ export default function SectionOptimizeButton({ sectionType, currentContent, onA
           {/* JD input */}
           {goal === 'tailor_jd' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">职位描述 (JD)</label>
+              <Label className="text-xs text-muted-foreground">职位描述 (JD)</Label>
               <Textarea
                 placeholder="粘贴目标职位的 JD..."
                 value={jd}
@@ -120,7 +121,7 @@ export default function SectionOptimizeButton({ sectionType, currentContent, onA
 
           {/* Extra instructions */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">额外要求（可选）</label>
+            <Label className="text-xs text-muted-foreground">额外要求（可选）</Label>
             <Input
               placeholder="例如：突出团队管理经验..."
               value={instructions}

@@ -20,7 +20,3 @@ const templateRegistry: Record<string, TemplateComponent> = {
 export function getTemplate(name: string): TemplateComponent {
   return templateRegistry[name] || DefaultTemplate;
 }
-
-export function getTemplateNames(): string[] {
-  return Object.keys(templateRegistry);
-}

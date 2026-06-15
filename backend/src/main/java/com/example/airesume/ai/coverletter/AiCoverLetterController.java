@@ -27,7 +27,7 @@ public class AiCoverLetterController {
     ) {
         CoverLetterGenResponse response = coverLetterService.generate(
             provider, apiKey, baseUrl, model,
-            request.resumeId(), request.jobDescription(),
+            request.resumeText(), request.jobDescription(),
             request.tone(), request.language()
         );
         return ApiResponse.ok(response);

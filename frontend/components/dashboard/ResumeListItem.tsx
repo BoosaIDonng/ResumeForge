@@ -4,15 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Resume } from "@/lib/types";
 import { MoreVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { calcCompleteness, parseResumeDataSafe } from "@/lib/completeness";
 
 type Props = {
   resume: Resume;
   index: number;
-  onRename: (id: number, newTitle: string) => void;
-  onCopy: (id: number) => void;
-  onShare: (id: number) => void;
-  onDelete: (id: number) => void;
+  onRename: (id: string, newTitle: string) => void;
+  onCopy: (id: string) => void;
+  onShare: (id: string) => void;
+  onDelete: (id: string) => void;
 };
 
 const templateLabels: Record<string, string> = {
@@ -114,12 +115,14 @@ export default function ResumeListItem({ resume, index, onRename, onCopy, onShar
       </div>
 
       <div className="relative shrink-0 self-center" data-menu ref={menuRef}>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
           className="p-2 text-muted-foreground/60 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus-within:opacity-100"
         >
           <MoreVertical className="h-4 w-4" />
-        </button>
+        </Button>
         {menuOpen && (
           <div className="absolute right-0 top-full z-20 mt-1 w-28 border border-border bg-card py-0.5">
             <MenuItem label="重命名" onClick={() => { setMenuOpen(false); setEditing(true); }} />

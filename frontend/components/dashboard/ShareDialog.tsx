@@ -5,11 +5,12 @@ import { apiGet, apiPost, apiDelete } from "@/lib/api";
 import type { ShareInfo } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Lock, Eye } from "lucide-react";
 
 type Props = {
   open: boolean;
-  resumeId: number | null;
+  resumeId: string | null;
   onClose: () => void;
 };
 
@@ -104,9 +105,9 @@ export default function ShareDialog({ open, resumeId, onClose }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted-foreground">
+              <Label className="block text-muted-foreground">
                 分享链接
-              </label>
+              </Label>
               <div className="mt-1 flex gap-2">
                 <input
                   value={shareUrl}
@@ -138,9 +139,9 @@ export default function ShareDialog({ open, resumeId, onClose }: Props) {
             </p>
 
             <div>
-              <label className="block text-sm font-medium text-muted-foreground">
+              <Label className="block text-muted-foreground">
                 访问密码（可选）
-              </label>
+              </Label>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

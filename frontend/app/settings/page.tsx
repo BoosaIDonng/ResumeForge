@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bot, Palette, Settings, Eye, EyeOff } from "lucide-react";
+import { Bot, Palette, Settings, Eye, EyeOff, Database } from "lucide-react";
+import { DataBackup } from "@/components/DataBackup";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   loadAISettings,
   saveAISettings,
@@ -10,7 +14,7 @@ import {
   type AISettings,
 } from "@/lib/ai-settings";
 
-type Tab = "ai" | "appearance" | "editor";
+type Tab = "ai" | "appearance" | "editor" | "data";
 
 const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
   { value: "openai", label: "OpenAI" },
@@ -105,14 +109,14 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  const inputClass =
+  const selectClass =
     "w-full border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-primary focus:outline-none";
-  const labelClass = "block text-xs font-medium text-muted-foreground mb-1.5 tracking-wide uppercase";
 
   const tabs: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "ai", label: "AI 配置", icon: Bot },
     { key: "appearance", label: "外观", icon: Palette },
     { key: "editor", label: "编辑器", icon: Settings },
+    { key: "data", label: "数据", icon: Database },
   ];
 
   return (
@@ -144,9 +148,9 @@ export default function SettingsPage() {
       {tab === "ai" && (
         <div className="space-y-5">
           <div>
-            <label className={labelClass}>AI 提供商</label>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">AI 提供商</Label>
             <select
-              className={inputClass}
+              className={selectClass}
               value={provider}
               onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
             >
@@ -159,16 +163,17 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>API Key</label>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">API Key</Label>
             <div className="relative">
-              <input
-                className={inputClass}
+              <Input
                 type={showKey ? "text" : "password"}
                 placeholder="sk-..."
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
               />
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
                 type="button"
                 onClick={() => setShowKey(!showKey)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground"
@@ -178,15 +183,14 @@ export default function SettingsPage() {
                 ) : (
                   <Eye className="h-4 w-4" />
                 )}
-              </button>
+              </Button>
             </div>
             <p className="mt-1 text-xs text-muted-foreground/70">API Key 仅存储在本地浏览器中</p>
           </div>
 
           <div>
-            <label className={labelClass}>Base URL</label>
-            <input
-              className={inputClass}
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">Base URL</Label>
+            <Input
               placeholder="https://api.openai.com/v1"
               value={baseURL}
               onChange={(e) => setBaseURL(e.target.value)}
@@ -194,9 +198,8 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>模型</label>
-            <input
-              className={inputClass}
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">模型</Label>
+            <Input
               placeholder="gpt-4o"
               value={model}
               onChange={(e) => setModel(e.target.value)}
@@ -204,12 +207,9 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={handleSaveAI}
-              className="bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover transition-colors"
-            >
+            <Button onClick={handleSaveAI}>
               保存设置
-            </button>
+            </Button>
             {saved && (
               <span className="text-sm font-medium text-success">已保存</span>
             )}
@@ -221,7 +221,7 @@ export default function SettingsPage() {
       {tab === "appearance" && (
         <div className="space-y-5">
           <div>
-            <label className={labelClass}>主题</label>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">主题</Label>
             <div className="flex gap-2">
               {(["light", "dark", "system"] as const).map((t) => (
                 <button
@@ -240,20 +240,17 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>界面语言</label>
-            <select className={inputClass} value={language} onChange={(e) => setLanguage(e.target.value)}>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">界面语言</Label>
+            <select className={selectClass} value={language} onChange={(e) => setLanguage(e.target.value)}>
               <option value="zh">中文</option>
               <option value="en">English</option>
             </select>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={handleSaveAppearance}
-              className="bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover transition-colors"
-            >
+            <Button onClick={handleSaveAppearance}>
               保存设置
-            </button>
+            </Button>
             {saved && (
               <span className="text-sm font-medium text-success">已保存</span>
             )}
@@ -276,7 +273,7 @@ export default function SettingsPage() {
               }`}
             >
               <span
-                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-primary-foreground shadow transition-transform ${
                   autoSave ? "translate-x-5" : "translate-x-0"
                 }`}
               />
@@ -285,9 +282,9 @@ export default function SettingsPage() {
 
           {autoSave && (
             <div>
-              <label className={labelClass}>
+              <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">
                 自动保存间隔：{autoSaveInterval} 秒
-              </label>
+              </Label>
               <input
                 type="range"
                 min={10}
@@ -305,16 +302,20 @@ export default function SettingsPage() {
           )}
 
           <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={handleSaveEditor}
-              className="bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover transition-colors"
-            >
+            <Button onClick={handleSaveEditor}>
               保存设置
-            </button>
+            </Button>
             {saved && (
               <span className="text-sm font-medium text-success">已保存</span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Data Tab */}
+      {tab === "data" && (
+        <div className="py-6">
+          <DataBackup />
         </div>
       )}
     </div>

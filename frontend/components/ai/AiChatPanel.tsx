@@ -1,21 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, Send, Trash2, Check, FilePen, Sparkles, Wrench, Plus, type LucideIcon } from "lucide-react";
+import { Bot, Send, Trash2, FilePen, Sparkles, Wrench, Plus, Loader2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { getAIHeaders } from "@/lib/ai-settings";
-import { toolChat, toolChatStream, type ToolCallResult, type ToolChatResponse } from "@/lib/ai-api";
+import { streamToolChat, type ToolCallResult } from "@/lib/ai-api";
+import { resumeStorage } from "@/lib/storage";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
   toolCalls?: ToolCallResult[];
-  resumeModified?: boolean;
 };
 
 type Props = {
-  resumeId?: number;
+  resumeId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onResumeUpdated?: () => void;
@@ -25,7 +24,7 @@ type Props = {
 
 const STORAGE_PREFIX = "ai-chat-";
 
-function loadHistory(resumeId?: number): Message[] {
+function loadHistory(resumeId?: string): Message[] {
   if (typeof window === "undefined") return [];
   const key = `${STORAGE_PREFIX}${resumeId ?? "general"}`;
   try {
@@ -36,7 +35,7 @@ function loadHistory(resumeId?: number): Message[] {
   }
 }
 
-function saveHistory(resumeId: number | undefined, messages: Message[]) {
+function saveHistory(resumeId: string | undefined, messages: Message[]) {
   if (typeof window === "undefined") return;
   const key = `${STORAGE_PREFIX}${resumeId ?? "general"}`;
   localStorage.setItem(key, JSON.stringify(messages.slice(-50)));
@@ -64,6 +63,7 @@ export default function AiChatPanel({ resumeId, open, onOpenChange, onResumeUpda
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pendingSentRef = useRef(false);
+  const controllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,12 +73,15 @@ export default function AiChatPanel({ resumeId, open, onOpenChange, onResumeUpda
     saveHistory(resumeId, messages);
   }, [messages, resumeId]);
 
-  // Reset the pending flag when a new pendingMessage arrives
   useEffect(() => {
     if (!pendingMessage) {
       pendingSentRef.current = false;
     }
   }, [pendingMessage]);
+
+  useEffect(() => {
+    return () => controllerRef.current?.abort();
+  }, []);
 
   const sendMessage = useCallback(async (overrideText?: string) => {
     const text = (overrideText ?? input).trim();
@@ -91,115 +94,146 @@ export default function AiChatPanel({ resumeId, open, onOpenChange, onResumeUpda
     setInput("");
     setLoading(true);
 
-    // Insert a placeholder assistant message for streaming
-    const assistantPlaceholder: Message = { role: "assistant", content: "", toolCalls: [], resumeModified: false };
-    setMessages([...updated, assistantPlaceholder]);
+    // 插入占位助手消息，流式事件逐步填充
+    const placeholder: Message = { role: "assistant", content: "", toolCalls: [] };
+    setMessages([...updated, placeholder]);
 
-    try {
-      if (resumeId) {
-        // Streaming tool-chat with SSE
-        const history = updated.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
-        const collectedToolCalls: ToolCallResult[] = [];
-        let resumeWasModified = false;
-        let fullReply = "";
+    const history = updated.map((m) => ({ role: m.role, content: m.content }));
+    let resumeData: string | undefined;
+    if (resumeId) {
+      const stored = resumeStorage.getById(resumeId);
+      resumeData = typeof stored?.resumeData === "string" ? stored.resumeData : JSON.stringify(stored?.resumeData);
+    }
 
-        for await (const event of toolChatStream(resumeId, text, history)) {
-          const evt = event as { type: string; content?: string; tool?: string; args?: string; result?: string; reply?: string; toolCalls?: ToolCallResult[]; resumeModified?: boolean };
+    const fullReply = { current: "" };
+    const toolCallsAcc: ToolCallResult[] = [];
 
-          if (evt.type === "text" && evt.content) {
-            fullReply += evt.content;
-            // Update the placeholder message in real-time
+    controllerRef.current = streamToolChat(
+      { resumeData, message: text, history },
+      (event) => {
+        switch (event.type) {
+          case "text":
+            fullReply.current += event.content ?? "";
             setMessages((prev) => {
-              const updated_msgs = [...prev];
-              const last = updated_msgs[updated_msgs.length - 1];
+              const arr = [...prev];
+              const last = arr[arr.length - 1];
               if (last && last.role === "assistant") {
-                updated_msgs[updated_msgs.length - 1] = { ...last, content: fullReply };
+                arr[arr.length - 1] = { ...last, content: fullReply.current };
               }
-              return updated_msgs;
+              return arr;
             });
-          } else if (evt.type === "tool_start" && evt.tool) {
-            collectedToolCalls.push({ tool: evt.tool, args: {}, result: "执行中..." });
+            break;
+
+          case "tool_start": {
+            const rawArgs = event.args;
+            let parsedArgs: Record<string, unknown> = {};
+            if (typeof rawArgs === "string") {
+              try { parsedArgs = JSON.parse(rawArgs); } catch { parsedArgs = {}; }
+            } else if (rawArgs && typeof rawArgs === "object") {
+              parsedArgs = rawArgs;
+            }
+            toolCallsAcc.push({
+              type: event.tool ?? "",
+              description: "",
+              params: parsedArgs,
+              status: "pending",
+            });
             setMessages((prev) => {
-              const updated_msgs = [...prev];
-              const last = updated_msgs[updated_msgs.length - 1];
+              const arr = [...prev];
+              const last = arr[arr.length - 1];
               if (last && last.role === "assistant") {
-                updated_msgs[updated_msgs.length - 1] = { ...last, toolCalls: [...collectedToolCalls] };
+                arr[arr.length - 1] = { ...last, toolCalls: [...toolCallsAcc] };
               }
-              return updated_msgs;
+              return arr;
             });
-          } else if (evt.type === "tool_result" && evt.tool) {
-            // Update the last matching tool call with the actual result
-            const idx = collectedToolCalls.findLastIndex((tc) => tc.tool === evt.tool);
-            if (idx >= 0) {
-              collectedToolCalls[idx] = { ...collectedToolCalls[idx], result: evt.result ?? "" };
+            break;
+          }
+
+          case "tool_result": {
+            const pendingIdx = toolCallsAcc.findIndex((tc) => tc.status === "pending");
+            if (pendingIdx >= 0) {
+              toolCallsAcc[pendingIdx] = {
+                ...toolCallsAcc[pendingIdx],
+                description: event.result ?? "",
+                status: "success",
+              };
+            } else {
+              toolCallsAcc.push({
+                type: event.tool ?? "",
+                description: event.result ?? "",
+                params: {},
+                status: "success",
+              });
             }
             setMessages((prev) => {
-              const updated_msgs = [...prev];
-              const last = updated_msgs[updated_msgs.length - 1];
+              const arr = [...prev];
+              const last = arr[arr.length - 1];
               if (last && last.role === "assistant") {
-                updated_msgs[updated_msgs.length - 1] = { ...last, toolCalls: [...collectedToolCalls] };
+                arr[arr.length - 1] = { ...last, toolCalls: [...toolCallsAcc] };
               }
-              return updated_msgs;
+              return arr;
             });
-          } else if (evt.type === "resume_update") {
-            resumeWasModified = true;
-          } else if (evt.type === "done") {
-            // Final update with complete data
-            const doneEvt = evt as { reply?: string; toolCalls?: ToolCallResult[]; resumeModified?: boolean };
-            fullReply = doneEvt.reply || fullReply;
+            break;
+          }
+
+          case "resume_update":
+            // 简历已变更信号，done 事件会带最终 resumeData
+            break;
+
+          case "done":
             setMessages((prev) => {
-              const updated_msgs = [...prev];
-              const last = updated_msgs[updated_msgs.length - 1];
+              const arr = [...prev];
+              const last = arr[arr.length - 1];
               if (last && last.role === "assistant") {
-                updated_msgs[updated_msgs.length - 1] = {
+                arr[arr.length - 1] = {
                   ...last,
-                  content: fullReply || "(AI 未返回文字回复)",
-                  toolCalls: doneEvt.toolCalls || collectedToolCalls,
-                  resumeModified: doneEvt.resumeModified ?? resumeWasModified,
+                  content: event.reply ?? (fullReply.current || "(AI 未返回文字回复)"),
+                  toolCalls: [...toolCallsAcc],
                 };
               }
-              return updated_msgs;
+              return arr;
             });
-            if ((doneEvt.resumeModified ?? resumeWasModified) && onResumeUpdated) {
-              onResumeUpdated();
+            if (event.resumeModified && event.resumeData && resumeId) {
+              resumeStorage.update(resumeId, { resumeData: event.resumeData });
+              onResumeUpdated?.();
             }
-          }
-        }
-      } else {
-        // Fallback to basic chat (no resume context)
-        const headers = getAIHeaders();
-        const payload = { messages: updated.map((m) => ({ role: m.role, content: m.content })), resumeId };
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080"}/api/ai/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...headers },
-          body: JSON.stringify(payload),
-        });
-        const body = await res.json();
-        if (!res.ok || !body.success) throw new Error(body.message || "请求失败");
-        const reply = body.data?.content ?? body.data ?? "";
-        setMessages((prev) => {
-          const updated_msgs = [...prev];
-          const last = updated_msgs[updated_msgs.length - 1];
-          if (last && last.role === "assistant") {
-            updated_msgs[updated_msgs.length - 1] = { ...last, content: reply || "(AI 未返回文字回复)" };
-          }
-          return updated_msgs;
-        });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "发送失败");
-    } finally {
-      setLoading(false);
-      inputRef.current?.focus();
-    }
-  }, [input, loading, messages, resumeId]);
+            break;
 
-  // Auto-send pending message from external components (e.g. GrammarCheckPanel)
+          case "error":
+            setError(event.message ?? "AI 服务异常");
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last && last.role === "assistant" && !last.content && (!last.toolCalls || last.toolCalls.length === 0)) {
+                return prev.slice(0, -1);
+              }
+              return prev;
+            });
+            break;
+        }
+      },
+      (err) => {
+        setError(err instanceof Error ? err.message : "发送失败");
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === "assistant" && !last.content && (!last.toolCalls || last.toolCalls.length === 0)) {
+            return prev.slice(0, -1);
+          }
+          return prev;
+        });
+      },
+      () => {
+        setLoading(false);
+        controllerRef.current = null;
+        inputRef.current?.focus();
+      },
+    );
+  }, [input, loading, messages, resumeId, onResumeUpdated]);
+
+  // 外部组件（如 ResumeDiagnosisPanel、JdAnalysisDialog）触发的待发送消息
   useEffect(() => {
     if (pendingMessage && open && !loading && !pendingSentRef.current) {
       pendingSentRef.current = true;
       onPendingMessageConsumed?.();
-      // Use setTimeout to ensure the panel is fully open before sending
       setTimeout(() => {
         sendMessage(pendingMessage);
       }, 100);
@@ -254,24 +288,36 @@ export default function AiChatPanel({ resumeId, open, onOpenChange, onResumeUpda
                   <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                 </div>
 
-                {/* Tool call results */}
+                {/* 工具调用结果 */}
                 {msg.toolCalls && msg.toolCalls.length > 0 && (
                   <div className="space-y-1.5">
-                    {msg.toolCalls.map((tc, ti) => (
-                      <div key={ti} className="rounded-lg border border-success/20 bg-success/5 px-3 py-2 text-xs">
-                        <div className="flex items-center gap-1.5 font-medium text-success">
-                          {(() => { const Icon = TOOL_ICONS[tc.tool] ?? Wrench; return <Icon className="h-3.5 w-3.5" />; })()}
-                          <span>{TOOL_LABELS[tc.tool] || tc.tool}</span>
+                    {msg.toolCalls.map((tc, ti) => {
+                      const Icon = TOOL_ICONS[tc.type] ?? Wrench;
+                      const isPending = tc.status === "pending";
+                      return (
+                        <div
+                          key={ti}
+                          className={`rounded-lg border px-3 py-2 text-xs ${
+                            isPending
+                              ? "border-muted-foreground/20 bg-muted/40"
+                              : "border-success/20 bg-success/5"
+                          }`}
+                        >
+                          <div className={`flex items-center gap-1.5 font-medium ${isPending ? "text-muted-foreground" : "text-success"}`}>
+                            {isPending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Icon className="h-3.5 w-3.5" />
+                            )}
+                            <span>{TOOL_LABELS[tc.type] || tc.type}</span>
+                            {isPending && <span className="text-muted-foreground/70">执行中…</span>}
+                          </div>
+                          {tc.description && (
+                            <p className="mt-1 text-muted-foreground">{tc.description}</p>
+                          )}
                         </div>
-                        <p className="mt-1 text-muted-foreground">{tc.result}</p>
-                      </div>
-                    ))}
-                    {msg.resumeModified && (
-                      <div className="flex items-center gap-1 text-[10px] text-success">
-                        <Check className="size-3" />
-                        <span>简历已更新，编辑器已同步</span>
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
                 )}
               </div>

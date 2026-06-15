@@ -3,20 +3,15 @@ package com.example.airesume.ai.generate;
 import com.example.airesume.ai.AiClient;
 import com.example.airesume.ai.AiClientFactory;
 import com.example.airesume.ai.PromptType;
-import com.example.airesume.common.GuestUser;
-import com.example.airesume.resume.ResumeEntity;
-import com.example.airesume.resume.ResumeRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AiGenerateService {
     private final AiClientFactory clientFactory;
-    private final ResumeRepository resumeRepository;
 
-    public AiGenerateService(AiClientFactory clientFactory, ResumeRepository resumeRepository) {
+    public AiGenerateService(AiClientFactory clientFactory) {
         this.clientFactory = clientFactory;
-        this.resumeRepository = resumeRepository;
     }
 
     public GenerateResumeResponse generate(String provider, String apiKey, String baseUrl, String model,
@@ -128,9 +123,6 @@ public class AiGenerateService {
         String response = client.completeJson(PromptType.RESUME_GENERATE, systemPrompt, userPrompt.toString());
 
         String title = jobTitle + " - AI 生成简历";
-        ResumeEntity entity = new ResumeEntity(GuestUser.ID, title, false, response);
-        entity = resumeRepository.save(entity);
-
-        return new GenerateResumeResponse(entity.getId(), title, response);
+        return new GenerateResumeResponse(title, response);
     }
 }

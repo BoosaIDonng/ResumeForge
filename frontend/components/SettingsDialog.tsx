@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bot, Palette, Settings, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   loadAISettings,
   saveAISettings,
@@ -117,7 +118,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
 
   const inputClass =
     "w-full border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-primary focus:outline-none";
-  const labelClass = "block text-xs font-medium text-muted-foreground mb-1.5 tracking-wide uppercase";
+  const labelClass = "block text-xs text-muted-foreground mb-1.5 tracking-wide uppercase";
 
   const tabDefs: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "ai", label: "AI 配置", icon: Bot },
@@ -153,7 +154,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
           {tab === "ai" && (
             <div className="space-y-5">
               <div>
-                <label className={labelClass}>AI 提供商</label>
+                <Label className={labelClass}>AI 提供商</Label>
                 <select className={inputClass} value={provider} onChange={(e) => handleProviderChange(e.target.value as AIProvider)}>
                   {PROVIDER_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -162,7 +163,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
               </div>
 
               <div>
-                <label className={labelClass}>API Key</label>
+                <Label className={labelClass}>API Key</Label>
                 <div className="relative">
                   <input className={inputClass} type={showKey ? "text" : "password"} placeholder="sk-..." value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
                   <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
@@ -173,12 +174,12 @@ export default function SettingsDialog({ open, onClose }: Props) {
               </div>
 
               <div>
-                <label className={labelClass}>Base URL</label>
+                <Label className={labelClass}>Base URL</Label>
                 <input className={inputClass} placeholder="https://api.openai.com/v1" value={baseURL} onChange={(e) => setBaseURL(e.target.value)} />
               </div>
 
               <div>
-                <label className={labelClass}>模型</label>
+                <Label className={labelClass}>模型</Label>
                 <input className={inputClass} placeholder="gpt-4o" value={model} onChange={(e) => setModel(e.target.value)} />
               </div>
 
@@ -194,7 +195,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
           {tab === "appearance" && (
             <div className="space-y-5">
               <div>
-                <label className={labelClass}>主题</label>
+                <Label className={labelClass}>主题</Label>
                 <div className="flex gap-2">
                   {(["light", "dark", "system"] as const).map((t) => (
                     <button
@@ -213,7 +214,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
               </div>
 
               <div>
-                <label className={labelClass}>界面语言</label>
+                <Label className={labelClass}>界面语言</Label>
                 <select className={inputClass} value={language} onChange={(e) => setLanguage(e.target.value)}>
                   <option value="zh">中文</option>
                   <option value="en">English</option>
@@ -240,13 +241,13 @@ export default function SettingsDialog({ open, onClose }: Props) {
                   onClick={() => setAutoSave(!autoSave)}
                   className={`relative h-6 w-11 rounded-full transition-colors ${autoSave ? "bg-primary" : "bg-muted"}`}
                 >
-                  <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoSave ? "translate-x-5" : "translate-x-0"}`} />
+                  <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-primary-foreground shadow transition-transform ${autoSave ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
 
               {autoSave && (
                 <div>
-                  <label className={labelClass}>自动保存间隔：{autoSaveInterval} 秒</label>
+                  <Label className={labelClass}>自动保存间隔：{autoSaveInterval} 秒</Label>
                   <input type="range" min={10} max={120} step={5} value={autoSaveInterval} onChange={(e) => setAutoSaveInterval(Number(e.target.value))} className="w-full accent-primary" />
                   <div className="flex justify-between text-xs text-muted-foreground/70 mt-1">
                     <span>10秒</span>

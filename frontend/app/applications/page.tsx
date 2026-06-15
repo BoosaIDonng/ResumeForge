@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
 import type { Application, ApplicationStats } from "@/lib/types";
 import { Plus, Trash2, Pencil, ExternalLink, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -39,9 +43,9 @@ type FormData = {
   url: string;
 };
 
-const emptyForm: FormData = { resumeId: "1", company: "", position: "", status: "APPLIED", notes: "", url: "" };
+const emptyForm: FormData = { resumeId: "", company: "", position: "", status: "APPLIED", notes: "", url: "" };
 
-const inputClass =
+const selectClass =
   "w-full border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-primary focus:outline-none";
 
 export default function ApplicationsPage() {
@@ -51,7 +55,7 @@ export default function ApplicationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("ALL");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [saving, setSaving] = useState(false);
 
@@ -93,7 +97,7 @@ export default function ApplicationsPage() {
       position: app.position,
       status: app.status,
       notes: app.notes ?? "",
-      url: app.url ?? "",
+      url: app.jobUrl ?? "",
     });
     setDialogOpen(true);
   }
@@ -104,12 +108,13 @@ export default function ApplicationsPage() {
     setError(null);
     try {
       const payload = {
-        resumeId: Number(form.resumeId),
+        resumeId: form.resumeId || undefined,
         company: form.company.trim(),
         position: form.position.trim(),
-        status: form.status,
-        notes: form.notes.trim() || null,
-        url: form.url.trim() || null,
+        status: form.status as any,
+        notes: form.notes.trim() || undefined,
+        jobUrl: form.url.trim() || undefined,
+        appliedDate: new Date().toISOString(),
       };
       if (editingId !== null) {
         await apiPut(`/api/applications/${editingId}`, payload);
@@ -125,7 +130,7 @@ export default function ApplicationsPage() {
     }
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     if (!confirm("确定要删除这条投递记录吗？")) return;
     try {
       await apiDelete(`/api/applications/${id}`);
@@ -143,13 +148,10 @@ export default function ApplicationsPage() {
         <p className="text-eyebrow mb-1">求职跟踪</p>
         <div className="flex items-end justify-between">
           <h1 className="text-display text-foreground">投递记录</h1>
-          <button
-            onClick={openCreate}
-            className="inline-flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-          >
+          <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
             新增投递
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -207,12 +209,9 @@ export default function ApplicationsPage() {
             {filter === "ALL" ? "还没有投递记录" : `${statusLabel[filter]}的记录为空`}
           </p>
           {filter === "ALL" && (
-            <button
-              onClick={openCreate}
-              className="mt-4 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-            >
+            <Button onClick={openCreate}>
               新增第一条投递
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -240,14 +239,16 @@ export default function ApplicationsPage() {
                 </div>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {app.company}
-                  <span className="ml-2">· 投递于 {new Date(app.appliedAt).toLocaleDateString("zh-CN")}</span>
+                  {app.appliedDate && (
+                    <span className="ml-2">· 投递于 {new Date(app.appliedDate).toLocaleDateString("zh-CN")}</span>
+                  )}
                 </p>
-                {(app.notes || app.url) && (
+                {(app.notes || app.jobUrl) && (
                   <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground/70">
                     {app.notes && <span className="truncate max-w-xs">{app.notes}</span>}
-                    {app.url && (
+                    {app.jobUrl && (
                       <a
-                        href={app.url}
+                        href={app.jobUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-0.5 text-primary hover:underline"
@@ -292,37 +293,33 @@ export default function ApplicationsPage() {
 
           <div className="flex flex-col gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">简历 ID</label>
-              <input
-                className={inputClass}
-                type="number"
+              <Label className="mb-1 block text-xs text-muted-foreground">简历 ID（可选）</Label>
+              <Input
                 value={form.resumeId}
                 onChange={(e) => setForm((f) => ({ ...f, resumeId: e.target.value }))}
-                placeholder="1"
+                placeholder="关联的简历 ID"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">公司 *</label>
-              <input
-                className={inputClass}
+              <Label className="mb-1 block text-xs text-muted-foreground">公司 *</Label>
+              <Input
                 value={form.company}
                 onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
                 placeholder="如：字节跳动"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">职位 *</label>
-              <input
-                className={inputClass}
+              <Label className="mb-1 block text-xs text-muted-foreground">职位 *</Label>
+              <Input
                 value={form.position}
                 onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
                 placeholder="如：前端工程师"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">状态</label>
+              <Label className="mb-1 block text-xs text-muted-foreground">状态</Label>
               <select
-                className={inputClass}
+                className={selectClass}
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
               >
@@ -332,18 +329,17 @@ export default function ApplicationsPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">链接</label>
-              <input
-                className={inputClass}
+              <Label className="mb-1 block text-xs text-muted-foreground">链接</Label>
+              <Input
                 value={form.url}
                 onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
                 placeholder="https://..."
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">备注</label>
-              <textarea
-                className={inputClass + " resize-none"}
+              <Label className="mb-1 block text-xs text-muted-foreground">备注</Label>
+              <Textarea
+                className="resize-none"
                 rows={3}
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -353,19 +349,18 @@ export default function ApplicationsPage() {
           </div>
 
           <DialogFooter>
-            <button
+            <Button
+              variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSave}
               disabled={saving || !form.company.trim() || !form.position.trim()}
-              className="bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "保存中…" : editingId !== null ? "更新" : "创建"}
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

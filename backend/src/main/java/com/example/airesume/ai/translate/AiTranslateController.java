@@ -27,7 +27,7 @@ public class AiTranslateController {
     ) {
         TranslateResponse response = translateService.translate(
             provider, apiKey, baseUrl, model,
-            request.resumeId(), request.targetLanguage(), request.mode()
+            request.resumeData(), request.targetLanguage(), request.mode()
         );
         return ApiResponse.ok(response);
     }

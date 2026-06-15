@@ -4,6 +4,8 @@ import { useState } from "react";
 import { getAIHeaders } from "@/lib/ai-settings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Mail, Loader2, Check, Copy } from "lucide-react";
 
 type Props = {
@@ -27,7 +29,7 @@ export default function CoverLetterDialog({ onClose }: Props) {
     setCoverLetter("");
     try {
       const headers = getAIHeaders();
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
       const res = await fetch(`${API_BASE}/api/ai/generate-cover-letter`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
@@ -65,7 +67,7 @@ export default function CoverLetterDialog({ onClose }: Props) {
     }
   }
 
-  const inputClass =
+  const selectClass =
     "w-full border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:bg-card focus:outline-none";
 
   const hasResult = loading || coverLetter.length > 0;
@@ -83,11 +85,11 @@ export default function CoverLetterDialog({ onClose }: Props) {
         </DialogHeader>
         <div className={`flex-1 min-h-0 overflow-y-auto ${hasResult ? "p-5 space-y-4" : "p-4"}`}>
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <Label className="mb-1 block text-xs text-muted-foreground">
               职位描述 <span className="text-destructive">*</span>
-            </label>
-            <textarea
-              className={`${inputClass} min-h-[100px] resize-y`}
+            </Label>
+            <Textarea
+              className="min-h-[100px] resize-y"
               placeholder="粘贴目标职位的 JD..."
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
@@ -96,16 +98,16 @@ export default function CoverLetterDialog({ onClose }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">语气风格</label>
-              <select className={inputClass} value={tone} onChange={(e) => setTone(e.target.value)}>
+              <Label className="mb-1 block text-xs text-muted-foreground">语气风格</Label>
+              <select className={selectClass} value={tone} onChange={(e) => setTone(e.target.value)}>
                 <option value="formal">正式</option>
                 <option value="friendly">友好</option>
                 <option value="confident">自信</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">语言</label>
-              <select className={inputClass} value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <Label className="mb-1 block text-xs text-muted-foreground">语言</Label>
+              <select className={selectClass} value={language} onChange={(e) => setLanguage(e.target.value)}>
                 <option value="zh">中文</option>
                 <option value="en">English</option>
                 <option value="ja">日本語</option>
@@ -155,8 +157,8 @@ export default function CoverLetterDialog({ onClose }: Props) {
                   )}
                 </Button>
               </div>
-              <textarea
-                className={`${inputClass} min-h-[200px] resize-y`}
+              <Textarea
+                className="min-h-[200px] resize-y"
                 value={coverLetter}
                 onChange={(e) => setCoverLetter(e.target.value)}
               />

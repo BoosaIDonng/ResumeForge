@@ -18,25 +18,16 @@ export function calcCompleteness(data: ResumeData): number {
   return Math.round((filled / total) * 100);
 }
 
-export function parseResumeDataSafe(raw: string): ResumeData | null {
+export function parseResumeDataSafe(raw: string | object): ResumeData | null {
   try {
+    if (typeof raw === 'object' && raw !== null) return raw as ResumeData;
     return JSON.parse(raw) as ResumeData;
   } catch {
     return null;
   }
 }
 
-export function getPreviewName(raw: string): string {
-  const data = parseResumeDataSafe(raw);
-  return data?.basics?.name || "";
-}
-
-export function getPreviewHeadline(raw: string): string {
-  const data = parseResumeDataSafe(raw);
-  return data?.basics?.headline || "";
-}
-
-export function getPreviewSummary(raw: string, maxLen = 60): string {
+export function getPreviewSummary(raw: string | object, maxLen = 60): string {
   const data = parseResumeDataSafe(raw);
   if (!data) return "";
   const text = data.summary?.content?.trim()
@@ -46,7 +37,3 @@ export function getPreviewSummary(raw: string, maxLen = 60): string {
   return text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
 }
 
-export function getExperienceCount(raw: string): number {
-  const data = parseResumeDataSafe(raw);
-  return data?.sections.experience?.items?.length ?? 0;
-}

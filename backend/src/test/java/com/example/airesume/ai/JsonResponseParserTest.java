@@ -132,4 +132,53 @@ class JsonResponseParserTest {
             .isInstanceOf(AiResponseFormatException.class)
             .hasMessageContaining("多步修复后仍无法解析");
     }
+
+    @Test
+    void repairsTruncatedJsonUnclosedString() {
+        JsonResponseParser parser = new JsonResponseParser();
+
+        // AI 输出因 max_tokens 被截断在字符串值中间
+        String input = "{\"score\":88,\"summary\":\"这是一段被截断的";
+        ScoreResponse response = parser.parse(input, ScoreResponse.class);
+
+        assertThat(response.score()).isEqualTo(88);
+        assertThat(response.summary()).startsWith("这是一段被截断的");
+    }
+
+    @Test
+    void repairsTruncatedJsonUnclosedObject() {
+        JsonResponseParser parser = new JsonResponseParser();
+
+        // 缺少最外层闭合括号
+        String input = "{\"score\":75,\"summary\":\"还行\"";
+        ScoreResponse response = parser.parse(input, ScoreResponse.class);
+
+        assertThat(response.score()).isEqualTo(75);
+        assertThat(response.summary()).isEqualTo("还行");
+    }
+
+    @Test
+    void repairsTruncatedJsonWithTrailingComma() {
+        JsonResponseParser parser = new JsonResponseParser();
+
+        // 截断处恰好在逗号后面
+        String input = "{\"score\":60,\"summary\":\"一般\",";
+        ScoreResponse response = parser.parse(input, ScoreResponse.class);
+
+        assertThat(response.score()).isEqualTo(60);
+        assertThat(response.summary()).isEqualTo("一般");
+    }
+
+    @Test
+    void repairsTruncatedJsonDeeplyNested() {
+        JsonResponseParser parser = new JsonResponseParser();
+
+        // 模拟简历解析被截断：多层嵌套未闭合 + 字符串未闭合
+        String input = "{\"basics\":{\"name\":\"张三\"},\"sections\":{\"experience\":{\"items\":[{\"company\":\"ABC\",\"summary\":\"负责核心系统";
+        var response = parser.parse(input, java.util.Map.class);
+
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> map = (java.util.Map<String, Object>) response;
+        assertThat(map).containsKey("basics");
+    }
 }

@@ -1,13 +1,14 @@
 /**
  * AI-enhanced API functions for the resume editor.
- * These are NEW endpoints that don't conflict with existing api.ts.
+ * AI operations hit the backend; results are mirrored to localStorage.
  */
 import { getAIHeaders } from './ai-settings';
+import { resumeStorage, versionStorage } from './storage';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 // ============================================================
-// Section Optimize
+// Section Optimize (pure AI — no localStorage side-effects)
 // ============================================================
 
 export interface SectionOptimizeRequest {
@@ -44,176 +45,233 @@ export async function optimizeSection(req: SectionOptimizeRequest): Promise<Sect
 }
 
 // ============================================================
-// Tool Chat (AI with direct resume modification)
+// AI Chat (synchronous)
 // ============================================================
 
 export interface ToolCallResult {
-  tool: string;
-  args: Record<string, unknown>;
-  result: string;
+  type: string;
+  description: string;
+  params: Record<string, unknown>;
+  status?: 'pending' | 'success';
 }
 
-export interface ToolChatResponse {
+export interface AiChatResponse {
   reply: string;
   toolCalls: ToolCallResult[];
-  resumeModified: boolean;
-  resumeData?: Record<string, unknown>;
 }
 
-export async function toolChat(
-  resumeId: number,
+export async function aiChat(
+  resumeData: string | undefined,
   message: string,
   history?: { role: string; content: string }[]
-): Promise<ToolChatResponse> {
-  const res = await fetch(`${BASE}/api/ai/tool-chat`, {
+): Promise<AiChatResponse> {
+  const body: Record<string, unknown> = { message };
+  if (resumeData) body.resumeData = resumeData;
+  if (history && history.length > 0) body.conversationHistory = history;
+
+  const res = await fetch(`${BASE}/api/ai/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAIHeaders() },
-    body: JSON.stringify({ resumeId, message, history }),
+    body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`AI 聊天失败 (${res.status})`);
-  const data = await res.json();
-  return data.data;
+  const json = await res.json();
+  if (!res.ok || !json.success) throw new Error(json.message || `AI 聊天失败 (${res.status})`);
+  return {
+    reply: json.data?.reply ?? '',
+    toolCalls: json.data?.toolCalls ?? [],
+  };
+}
+
+// ============================================================
+// ToolChat Stream (SSE — real function-calling, recommended)
+// ============================================================
+
+export type StreamEventType =
+  | 'text'
+  | 'tool_start'
+  | 'tool_result'
+  | 'resume_update'
+  | 'done'
+  | 'error';
+
+export interface StreamEvent {
+  type: StreamEventType;
+  content?: string;
+  tool?: string;
+  args?: string | Record<string, unknown>;
+  result?: string;
+  reply?: string;
+  toolCalls?: { tool: string; args: Record<string, unknown>; result: string }[];
+  resumeModified?: boolean;
+  resumeData?: string;
+  message?: string;
 }
 
 /**
- * Streaming tool-chat via SSE. Returns an async generator of events.
+ * 流式 ToolChat（POST + ReadableStream 解析 SSE）。
+ * 返回 AbortController 供调用方中断请求。
  */
-export async function* toolChatStream(
-  resumeId: number,
-  message: string,
-  history?: { role: string; content: string }[]
-): AsyncGenerator<Record<string, unknown>> {
-  const res = await fetch(`${BASE}/api/ai/tool-chat/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAIHeaders() },
-    body: JSON.stringify({ resumeId, message, history }),
-  });
-  if (!res.ok) throw new Error(`AI 聊天失败 (${res.status})`);
+export function streamToolChat(
+  params: {
+    resumeData?: string;
+    message: string;
+    history?: { role: string; content: string }[];
+  },
+  onEvent: (event: StreamEvent) => void,
+  onError: (err: Error) => void,
+  onComplete: () => void,
+): AbortController {
+  const controller = new AbortController();
 
-  const reader = res.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
+  (async () => {
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/api/ai/tool-chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+          ...getAIHeaders(),
+        },
+        body: JSON.stringify({
+          message: params.message,
+          resumeData: params.resumeData,
+          history: params.history,
+        }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') onError(e as Error);
+      return;
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    // Parse SSE lines
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? ''; // Keep incomplete line in buffer
-
-    for (const line of lines) {
-      if (line.startsWith('data:')) {
-        const data = line.slice(5).trim();
-        if (!data) continue;
-        try {
-          yield JSON.parse(data);
-        } catch { /* skip malformed events */ }
+    if (!res.ok || !res.body) {
+      let msg = `流式请求失败 (${res.status})`;
+      try {
+        const errBody = await res.json();
+        if (errBody?.message) msg = errBody.message;
+      } catch {
+        // 响应体非 JSON，使用默认错误信息
       }
+      onError(new Error(msg));
+      return;
     }
-  }
 
-  // Process any remaining buffer
-  if (buffer.startsWith('data:')) {
-    const data = buffer.slice(5).trim();
-    if (data) {
-      try { yield JSON.parse(data); } catch { /* skip */ }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        let sepIdx: number;
+        while ((sepIdx = buffer.indexOf('\n\n')) >= 0) {
+          const rawEvent = buffer.slice(0, sepIdx);
+          buffer = buffer.slice(sepIdx + 2);
+
+          for (const line of rawEvent.split('\n')) {
+            if (!line.startsWith('data:')) continue;
+            const data = line.slice(5).trim();
+            if (!data) continue;
+            try {
+              const event = JSON.parse(data) as StreamEvent;
+              onEvent(event);
+              if (event.type === 'done' || event.type === 'error') {
+                onComplete();
+                return;
+              }
+            } catch {
+              // 跳过无法解析的行
+            }
+          }
+        }
+      }
+      onComplete();
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') onError(e as Error);
     }
-  }
+  })();
+
+  return controller;
 }
 
 // ============================================================
-// Quality Score
-// ============================================================
-
-export interface SectionScore {
-  sectionType: string;
-  sectionName: string;
-  score: number;
-  feedback: string;
-}
-
-export interface QualitySuggestion {
-  priority: string;
-  section: string;
-  message: string;
-  example: string;
-}
-
-export interface QualityScoreResponse {
-  overallScore: number;
-  sectionScores: SectionScore[];
-  suggestions: QualitySuggestion[];
-  summary: string;
-}
-
-export async function getQualityScore(resumeId: number): Promise<QualityScoreResponse> {
-  const res = await fetch(`${BASE}/api/resumes/${resumeId}/quality-score`, {
-    headers: { ...getAIHeaders() },
-  });
-  if (!res.ok) throw new Error(`评分失败 (${res.status})`);
-  const data = await res.json();
-  return data.data;
-}
-
-// ============================================================
-// Version History
+// Version History (localStorage-backed)
 // ============================================================
 
 export interface VersionInfo {
-  id: number;
-  resumeId: number;
+  id: string;
+  resumeId: string;
   title: string;
   versionNumber: number;
   changeDescription: string;
   createdAt: string;
 }
 
-export async function listVersions(resumeId: number): Promise<VersionInfo[]> {
-  const res = await fetch(`${BASE}/api/resumes/${resumeId}/versions`);
-  if (!res.ok) throw new Error(`获取版本失败 (${res.status})`);
-  const data = await res.json();
-  return data.data;
+export async function listVersions(resumeId: string): Promise<VersionInfo[]> {
+  return versionStorage.getByResumeId(resumeId).map((v) => ({
+    id: v.id,
+    resumeId: v.resumeId,
+    title: v.title,
+    versionNumber: v.versionNumber,
+    changeDescription: v.changeDescription ?? '',
+    createdAt: v.createdAt,
+  }));
 }
 
-export async function createVersion(resumeId: number, description: string): Promise<VersionInfo> {
-  const res = await fetch(`${BASE}/api/resumes/${resumeId}/versions?description=${encodeURIComponent(description)}`, {
-    method: 'POST',
-  });
-  if (!res.ok) throw new Error(`创建版本失败 (${res.status})`);
-  const data = await res.json();
-  return data.data;
+export async function createVersion(resumeId: string, description: string): Promise<VersionInfo> {
+  const resume = resumeStorage.getById(resumeId);
+  if (!resume) throw new Error('简历不存在');
+  const v = versionStorage.create(resumeId, description, resume.resumeData);
+  return {
+    id: v.id,
+    resumeId: v.resumeId,
+    title: v.title,
+    versionNumber: v.versionNumber,
+    changeDescription: v.changeDescription ?? '',
+    createdAt: v.createdAt,
+  };
 }
 
-export async function restoreVersion(resumeId: number, versionId: number): Promise<unknown> {
-  const res = await fetch(`${BASE}/api/resumes/${resumeId}/versions/${versionId}/restore`, {
-    method: 'POST',
-  });
-  if (!res.ok) throw new Error(`恢复版本失败 (${res.status})`);
-  const data = await res.json();
-  return data.data;
+export async function restoreVersion(resumeId: string, versionId: string): Promise<unknown> {
+  const versions = versionStorage.getByResumeId(resumeId);
+  const version = versions.find(v => v.id === versionId);
+  if (!version) throw new Error('版本不存在');
+  resumeStorage.update(resumeId, { resumeData: version.resumeData, title: version.title });
+  return { success: true };
 }
 
 // ============================================================
-// DOCX Import
+// File Import via parse-resume (backend AI → localStorage mirror)
 // ============================================================
 
-export async function importDocx(file: File): Promise<{ id: number; title: string }> {
+export async function importDocx(file: File): Promise<{ id: string; title: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch(`${BASE}/api/import/docx`, {
+  const res = await fetch(`${BASE}/api/ai/parse-resume`, {
     method: 'POST',
     headers: { ...getAIHeaders() },
     body: formData,
   });
-  if (!res.ok) throw new Error(`DOCX 导入失败 (${res.status})`);
-  const data = await res.json();
-  return data.data;
+  const json = await res.json();
+  if (!res.ok || !json.success) throw new Error(json.message || `导入失败 (${res.status})`);
+  const result = json.data;
+  const title = result?.basics?.name
+    ? `${result.basics.name}的简历`
+    : file.name.replace(/\.(docx|pdf)$/i, '');
+  const created = resumeStorage.create(
+    title,
+    result ? JSON.stringify(result) : '{}'
+  );
+  return { id: created.id, title: created.title };
 }
 
 // ============================================================
-// Diff Apply (structured suggestion application)
+// Diff Apply (AI operation → mirror result to localStorage)
 // ============================================================
 
 export interface DiffApplyChange {
@@ -230,7 +288,7 @@ export interface DiffApplyResult {
   warnings: { path: string; message: string }[];
 }
 
-export async function applyDiff(resumeId: number, changes: DiffApplyChange[]): Promise<DiffApplyResult> {
+export async function applyDiff(resumeId: string, changes: DiffApplyChange[]): Promise<DiffApplyResult> {
   const res = await fetch(`${BASE}/api/ai/diff/apply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAIHeaders() },
@@ -238,11 +296,15 @@ export async function applyDiff(resumeId: number, changes: DiffApplyChange[]): P
   });
   if (!res.ok) throw new Error(`应用失败 (${res.status})`);
   const data = await res.json();
-  return data.data;
+  const result = data.data;
+  if (result?.resumeData) {
+    resumeStorage.update(resumeId, { resumeData: JSON.stringify(result.resumeData) });
+  }
+  return result;
 }
 
 // ============================================================
-// Enrichment Regeneration
+// Enrichment Regeneration (pure AI)
 // ============================================================
 
 export interface EnrichmentRegenerateRequest {
@@ -257,15 +319,34 @@ export interface EnrichmentRegenerateResponse {
 }
 
 export async function regenerateEnrichment(
-  resumeId: number,
+  resumeId: string,
   req: EnrichmentRegenerateRequest
 ): Promise<EnrichmentRegenerateResponse> {
-  const res = await fetch(`${BASE}/api/ai/enrichment/regenerate/${resumeId}`, {
+  const resume = resumeStorage.getById(resumeId);
+  if (!resume) throw new Error('简历不存在');
+  const res = await fetch(`${BASE}/api/ai/enrichment/regenerate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAIHeaders() },
-    body: JSON.stringify(req),
+    body: JSON.stringify({
+      resumeData: resume.resumeData,
+      itemType: req.itemType,
+      itemId: req.itemId,
+      userInstruction: req.userInstruction,
+    }),
   });
-  if (!res.ok) throw new Error(`重新生成失败 (${res.status})`);
-  const data = await res.json();
-  return data.data;
+  const json = await res.json();
+  if (!res.ok || !json.success) throw new Error(json.message || `重新生成失败 (${res.status})`);
+  // 后端返回 { enhancements: [{ originalDescription, enhancedDescription, ... }] }
+  const item = json.data?.enhancements?.[0];
+  const enhanced: string[] = item?.enhancedDescription ?? [];
+  const original: string[] = item?.originalDescription ?? [];
+  return {
+    enrichedContent: enhanced.join('\n'),
+    changes: enhanced.map((after, i) => ({
+      field: `第 ${i + 1} 条`,
+      before: original[i] ?? '',
+      after,
+      reason: '基于你的反馈重写',
+    })),
+  };
 }

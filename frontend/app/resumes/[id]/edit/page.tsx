@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use, useRef } from "react";
-import { apiGet } from "@/lib/api";
+import { resumeStorage } from "@/lib/storage";
 import type { Resume } from "@/lib/types";
 import { parseResumeData, emptyResumeData } from "@/components/resume/resumeData";
 import type { ResumeData } from "@/components/resume/resumeData";
@@ -23,20 +23,23 @@ export default function EditResumePage({ params }: { params: Promise<{ id: strin
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const r = await apiGet<Resume>(`/api/resumes/${id}`);
-        setResume(r);
-        if (r.resumeData) {
-          setData(parseResumeData(r.resumeData));
-        }
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "加载简历失败");
-      } finally {
-        setLoading(false);
+    const r = resumeStorage.getById(id);
+    if (r) {
+      const resumeObj: Resume = {
+        id: r.id,
+        title: r.title,
+        resumeData: typeof r.resumeData === 'string' ? r.resumeData : JSON.stringify(r.resumeData),
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      };
+      setResume(resumeObj);
+      if (r.resumeData) {
+        setData(parseResumeData(r.resumeData));
       }
+    } else {
+      setError("简历不存在");
     }
-    load();
+    setLoading(false);
   }, [id]);
 
   function scrollToSection(sectionId: string) {
@@ -83,14 +86,12 @@ export default function EditResumePage({ params }: { params: Promise<{ id: strin
       <AiToolbar
         resumeId={resume.id}
         resumeData={JSON.stringify(data)}
-        onResumeUpdated={async () => {
-          // Reload resume from server after AI tool-calling modified it
-          try {
-            const r = await apiGet<Resume>(`/api/resumes/${resume.id}`);
-            if (r.resumeData) {
-              setData(parseResumeData(r.resumeData));
-            }
-          } catch { /* ignore */ }
+        onResumeUpdated={() => {
+          // Reload resume from localStorage after AI tool-calling modified it
+          const r = resumeStorage.getById(id);
+          if (r?.resumeData) {
+            setData(parseResumeData(r.resumeData));
+          }
         }}
         designData={data}
         onDesignChange={setData}

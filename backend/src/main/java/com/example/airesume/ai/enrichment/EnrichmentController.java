@@ -1,8 +1,10 @@
 package com.example.airesume.ai.enrichment;
 
 import com.example.airesume.common.ApiResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -27,61 +29,73 @@ public class EnrichmentController {
     /**
      * Analyze a resume to find weak descriptions and generate clarifying questions.
      */
-    @PostMapping("/analyze/{resumeId}")
+    @PostMapping("/analyze")
     public ApiResponse<AiEnrichmentService.EnrichmentAnalysis> analyze(
-            @PathVariable Long resumeId,
+            @Valid @RequestBody EnrichmentAnalyzeRequest request,
             @RequestHeader(value = "x-provider", required = false) String provider,
             @RequestHeader(value = "x-api-key", required = false) String apiKey,
             @RequestHeader(value = "x-base-url", required = false) String baseUrl,
             @RequestHeader(value = "x-model", required = false) String model
     ) {
-        return ApiResponse.ok(enrichmentService.analyze(resumeId, provider, apiKey, baseUrl, model));
+        return ApiResponse.ok(enrichmentService.analyze(request.resumeData(), provider, apiKey, baseUrl, model));
     }
 
     /**
      * Generate enhanced bullets from user answers to clarifying questions.
      */
-    @PostMapping("/enhance/{resumeId}")
+    @PostMapping("/enhance")
     public ApiResponse<AiEnrichmentService.EnrichmentResult> enhance(
-            @PathVariable Long resumeId,
-            @RequestBody EnrichmentRequest request,
+            @Valid @RequestBody EnrichmentEnhanceRequest request,
             @RequestHeader(value = "x-provider", required = false) String provider,
             @RequestHeader(value = "x-api-key", required = false) String apiKey,
             @RequestHeader(value = "x-base-url", required = false) String baseUrl,
             @RequestHeader(value = "x-model", required = false) String model
     ) {
-        return ApiResponse.ok(enrichmentService.enhance(resumeId, request.answers(), provider, apiKey, baseUrl, model));
+        return ApiResponse.ok(enrichmentService.enhance(request.resumeData(), request.answers(), provider, apiKey, baseUrl, model));
     }
 
     /**
-     * Apply enhancements to the resume — append new bullets to existing descriptions.
+     * Apply enhancements to the resume — append new bullets and return modified resumeData.
      */
-    @PostMapping("/apply/{resumeId}")
+    @PostMapping("/apply")
     public ApiResponse<String> apply(
-            @PathVariable Long resumeId,
-            @RequestBody AiEnrichmentService.EnrichmentResult result
+            @Valid @RequestBody EnrichmentApplyRequest request
     ) {
-        enrichmentService.apply(resumeId, result.enhancements());
-        return ApiResponse.ok("增强已应用");
+        String updated = enrichmentService.apply(request.resumeData(), request.enhancements());
+        return ApiResponse.ok(updated);
     }
 
     /**
      * Regenerate a single item's description based on user feedback.
      */
-    @PostMapping("/regenerate/{resumeId}")
+    @PostMapping("/regenerate")
     public ApiResponse<AiEnrichmentService.EnrichmentResult> regenerate(
-            @PathVariable Long resumeId,
-            @RequestBody RegenerateRequest request,
+            @Valid @RequestBody EnrichmentRegenerateRequest request,
             @RequestHeader(value = "x-provider", required = false) String provider,
             @RequestHeader(value = "x-api-key", required = false) String apiKey,
             @RequestHeader(value = "x-base-url", required = false) String baseUrl,
             @RequestHeader(value = "x-model", required = false) String model
     ) {
         return ApiResponse.ok(enrichmentService.regenerateItem(
-            resumeId, request.itemType(), request.itemId(), request.userInstruction(),
+            request.resumeData(), request.itemType(), request.itemId(), request.userInstruction(),
             provider, apiKey, baseUrl, model
         ));
     }
 
-    public record RegenerateRequest(String itemType, String itemId, String userInstruction) {}
+    // Request records
+    public record EnrichmentAnalyzeRequest(@NotBlank String resumeData) {}
+
+    public record EnrichmentEnhanceRequest(
+            @NotBlank String resumeData,
+            @NotNull List<EnrichmentRequest.AnswerItem> answers) {}
+
+    public record EnrichmentApplyRequest(
+            @NotBlank String resumeData,
+            @NotNull List<AiEnrichmentService.EnrichmentResult.EnhancedItem> enhancements) {}
+
+    public record EnrichmentRegenerateRequest(
+            @NotBlank String resumeData,
+            String itemType,
+            String itemId,
+            String userInstruction) {}
 }

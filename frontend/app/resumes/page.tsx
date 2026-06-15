@@ -2,30 +2,42 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { apiGet, apiPost } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { resumeStorage } from "@/lib/storage";
 import type { Resume } from "@/lib/types";
-import GenerateResumeDialog from "@/components/ai/GenerateResumeDialog";
-import { ChevronRight, Plus, Sparkles } from "lucide-react";
+import CreateResumeDialog from "@/components/dashboard/CreateResumeDialog";
+import { ChevronRight, Plus } from "lucide-react";
 
 function ResumesPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAiGenerate, setShowAiGenerate] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTab, setDialogTab] = useState<"template" | "upload" | "ai">("template");
 
   useEffect(() => { fetchResumes(); }, []);
 
-  useEffect(() => {
-    if (searchParams.get("ai") === "true") setShowAiGenerate(true);
-  }, [searchParams]);
+  const aiParam = searchParams.get("ai") === "true";
+  const [aiHandled, setAiHandled] = useState(false);
+  if (aiParam && !aiHandled) {
+    setAiHandled(true);
+    setDialogTab("ai");
+    setDialogOpen(true);
+  }
 
-  async function fetchResumes() {
+  function fetchResumes() {
     try {
-      const data = await apiGet<Resume[]>("/api/resumes");
+      const data = resumeStorage.getAll().map(r => ({
+        id: r.id,
+        title: r.title,
+        resumeData: typeof r.resumeData === 'string' ? r.resumeData : JSON.stringify(r.resumeData),
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      }));
       setResumes(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
@@ -34,14 +46,14 @@ function ResumesPageContent() {
     }
   }
 
-  async function handleCreate() {
+  function handleCreate() {
     if (!newTitle.trim()) return;
     setCreating(true);
     setError(null);
     try {
-      await apiPost<Resume>("/api/resumes", { title: newTitle.trim(), master: true });
+      resumeStorage.create(newTitle.trim(), {});
       setNewTitle("");
-      await fetchResumes();
+      fetchResumes();
     } catch (err) {
       setError(err instanceof Error ? err.message : "创建失败");
     } finally {
@@ -49,11 +61,20 @@ function ResumesPageContent() {
     }
   }
 
-  async function handleDuplicate(e: React.MouseEvent, id: number) {
+  function handleDuplicate(e: React.MouseEvent, id: string) {
     e.preventDefault();
     e.stopPropagation();
-    try { await apiPost<Resume>(`/api/resumes/${id}/copy`, {}); await fetchResumes(); }
-    catch (err) { setError(err instanceof Error ? err.message : "复制失败"); }
+    try {
+      resumeStorage.duplicate(id);
+      fetchResumes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "复制失败");
+    }
+  }
+
+  function handleCreated(resume: Resume) {
+    setResumes((prev) => [resume, ...prev]);
+    router.push(`/resumes/${resume.id}/edit`);
   }
 
   return (
@@ -77,19 +98,18 @@ function ResumesPageContent() {
           onKeyDown={(e) => e.key === "Enter" && handleCreate()}
         />
         <button
-          onClick={() => setShowAiGenerate(true)}
-          className="inline-flex items-center gap-1.5 border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
-        >
-          <Sparkles className="h-4 w-4" />
-          AI 生成
-        </button>
-        <button
           onClick={handleCreate}
           disabled={creating || !newTitle.trim()}
           className="inline-flex items-center gap-1.5 bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           {creating ? "创建中…" : "新建"}
+        </button>
+        <button
+          onClick={() => { setDialogTab("template"); setDialogOpen(true); }}
+          className="inline-flex items-center gap-1.5 border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+        >
+          更多创建方式
         </button>
       </div>
 
@@ -128,11 +148,6 @@ function ResumesPageContent() {
                     <h2 className="text-sm font-semibold text-foreground group-hover:text-primary truncate transition-colors">
                       {resume.title}
                     </h2>
-                    {resume.master && (
-                      <span className="mt-1 inline-block border border-primary/40 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                        主版
-                      </span>
-                    )}
                     <p className="mt-2 text-[11px] text-muted-foreground">
                       更新于 {new Date(resume.updatedAt).toLocaleDateString("zh-CN")}
                     </p>
@@ -155,7 +170,12 @@ function ResumesPageContent() {
         </div>
       )}
 
-      {showAiGenerate && <GenerateResumeDialog onClose={() => setShowAiGenerate(false)} />}
+      <CreateResumeDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onCreated={handleCreated}
+        initialTab={dialogTab}
+      />
     </div>
   );
 }

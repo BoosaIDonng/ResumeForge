@@ -36,13 +36,6 @@ class AiPhraseRefinerTest {
     }
 
     @Test
-    void countsAiPhrases() {
-        String input = "Leveraged synergy to spearhead a paradigm shift";
-        int count = refiner.countAiPhrases(input);
-        assertThat(count).isGreaterThanOrEqualTo(3);
-    }
-
-    @Test
     void preservesNormalText() {
         String input = "Developed REST APIs using Spring Boot and deployed to AWS";
         String result = refiner.refine(input);

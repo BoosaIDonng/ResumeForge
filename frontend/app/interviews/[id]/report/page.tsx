@@ -42,17 +42,19 @@ export default function InterviewReportPage() {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto py-12 px-4">
+      <div className="mx-auto max-w-3xl px-6 py-0">
         <p className="text-destructive">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-4">
-      <h1 className="text-2xl font-bold text-foreground mb-8">
-        面试反馈报告
-      </h1>
+    <div className="mx-auto max-w-3xl px-6 py-0">
+      {/* Masthead */}
+      <div className="border-b-[3px] border-double border-border py-6">
+        <p className="text-eyebrow mb-1">面试报告</p>
+        <h1 className="text-display-sm text-foreground">面试反馈报告</h1>
+      </div>
 
       {feedback && <FeedbackReport feedback={feedback} />}
 

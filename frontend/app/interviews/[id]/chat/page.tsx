@@ -52,7 +52,7 @@ export default function InterviewChatPage() {
 
     const userMsg: ChatMessage = {
       id: Date.now(),
-      sessionId: Number(id),
+      sessionId: id,
       role: "user",
       content: text,
       createdAt: new Date().toISOString(),
@@ -61,7 +61,7 @@ export default function InterviewChatPage() {
     const assistantId = Date.now() + 1;
     const assistantMsg: ChatMessage = {
       id: assistantId,
-      sessionId: Number(id),
+      sessionId: id,
       role: "assistant",
       content: "",
       createdAt: new Date().toISOString(),

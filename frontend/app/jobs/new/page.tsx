@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiPost, apiGet } from "@/lib/api";
 import { TaskProgress } from "@/components/TaskProgress";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import type { Job, AiTask, Resume } from "@/lib/types";
 
 export default function NewJobPage() {
@@ -15,8 +19,8 @@ export default function NewJobPage() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [taskId, setTaskId] = useState<number | null>(null);
-  const [jobId, setJobId] = useState<number | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
 
   useEffect(() => {
     apiGet<Resume[]>("/api/resumes").then(setResumes).catch(() => {});
@@ -29,13 +33,13 @@ export default function NewJobPage() {
 
     try {
       const job = await apiPost<Job>("/api/jobs", {
-        resumeId: Number(resumeId), title, company, description,
+        resumeId: resumeId, title, company, description,
       });
       setJobId(job.id);
 
-      const result = await apiPost<{ taskId: number; status: string }>(
+      const result = await apiPost<{ taskId: string; status: string }>(
         "/api/analysis/jd-match",
-        { resumeId: Number(resumeId), jobId: job.id }
+        { resumeId: resumeId, jobId: job.id }
       );
       setTaskId(result.taskId);
     } catch (err) {
@@ -66,8 +70,7 @@ export default function NewJobPage() {
     );
   }
 
-  const inputClass = "w-full border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-primary focus:outline-none";
-  const labelClass = "block text-xs font-medium text-muted-foreground mb-1.5 tracking-wide uppercase";
+  const selectClass = "w-full border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-primary focus:outline-none";
 
   return (
     <div className="mx-auto max-w-lg px-6 py-0">
@@ -86,36 +89,36 @@ export default function NewJobPage() {
       <form onSubmit={handleSubmit} className="divide-y divide-border">
         <div className="space-y-5 py-5">
           <div>
-            <label className={labelClass}>选择简历</label>
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">选择简历</Label>
             {resumes.length > 0 ? (
-              <select value={resumeId} onChange={(e) => setResumeId(e.target.value)} required className={inputClass}>
+              <select value={resumeId} onChange={(e) => setResumeId(e.target.value)} required className={selectClass}>
                 <option value="">— 请选择简历 —</option>
                 {resumes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
               </select>
             ) : (
-              <input type="text" value={resumeId} onChange={(e) => setResumeId(e.target.value)} required placeholder="输入简历 ID" className={inputClass} />
+              <Input type="text" value={resumeId} onChange={(e) => setResumeId(e.target.value)} required placeholder="输入简历 ID" />
             )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>职位名称</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputClass} placeholder="高级 Java 工程师" />
+              <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">职位名称</Label>
+              <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="高级 Java 工程师" />
             </div>
             <div>
-              <label className={labelClass}>公司名称</label>
-              <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} required className={inputClass} placeholder="字节跳动" />
+              <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">公司名称</Label>
+              <Input type="text" value={company} onChange={(e) => setCompany(e.target.value)} required placeholder="字节跳动" />
             </div>
           </div>
 
           <div>
-            <label className={labelClass}>职位描述 (JD)</label>
-            <textarea
+            <Label className="mb-1.5 block text-xs uppercase tracking-wide text-muted-foreground">职位描述 (JD)</Label>
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
               rows={10}
-              className={`${inputClass} resize-y min-h-[200px]`}
+              className="resize-y min-h-[200px]"
               placeholder="粘贴完整的职位描述…"
             />
             <p className="mt-1 text-[11px] text-muted-foreground">建议粘贴完整 JD 原文以获得最准确的分析</p>
@@ -123,13 +126,13 @@ export default function NewJobPage() {
         </div>
 
         <div className="py-4">
-          <button
+          <Button
             type="submit"
             disabled={loading || !resumeId}
-            className="w-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full"
           >
             {loading ? "提交中…" : "开始分析"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

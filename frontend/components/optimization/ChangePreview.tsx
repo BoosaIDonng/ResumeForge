@@ -45,11 +45,11 @@ export function ChangePreview({ changes, rejected = [] }: ChangePreviewProps) {
                 </span>
               </div>
               {isRejected ? (
-                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                <span className="border border-border bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
                   已拒绝
                 </span>
               ) : (
-                <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
+                <span className="border border-border bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
                   已应用
                 </span>
               )}

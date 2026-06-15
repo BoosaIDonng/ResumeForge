@@ -1,8 +1,8 @@
 package com.example.airesume.ai.grammar;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 public record GrammarCheckRequest(
-    @NotNull(message = "简历ID不能为空") Long resumeId
+    @NotBlank(message = "简历内容不能为空") String resumeText
 ) {
 }

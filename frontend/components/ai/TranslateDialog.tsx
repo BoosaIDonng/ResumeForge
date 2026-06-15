@@ -4,10 +4,11 @@ import { useState } from "react";
 import { getAIHeaders } from "@/lib/ai-settings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Languages, Check } from "lucide-react";
 
 type Props = {
-  resumeId?: number;
+  resumeId?: string;
   resumeData?: string;
   onClose: () => void;
 };
@@ -46,7 +47,7 @@ export default function TranslateDialog({ resumeId, resumeData, onClose }: Props
 
     try {
       const headers = getAIHeaders();
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
       const res = await fetch(`${API_BASE}/api/ai/translate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
@@ -69,9 +70,6 @@ export default function TranslateDialog({ resumeId, resumeData, onClose }: Props
     }
   }
 
-  const inputClass =
-    "w-full border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:bg-card focus:outline-none";
-
   const hasResult = loading || done;
   const dialogSize = hasResult
     ? "sm:max-w-[640px] w-[95vw]"
@@ -87,7 +85,7 @@ export default function TranslateDialog({ resumeId, resumeData, onClose }: Props
         </DialogHeader>
         <div className={`flex-1 min-h-0 overflow-y-auto ${hasResult ? "p-5 space-y-4" : "p-4"}`}>
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">目标语言</label>
+            <Label className="mb-1 block text-xs text-muted-foreground">目标语言</Label>
             <div className="grid grid-cols-2 gap-2">
               {LANGUAGES.map((lang) => (
                 <button
@@ -107,7 +105,7 @@ export default function TranslateDialog({ resumeId, resumeData, onClose }: Props
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">翻译模式</label>
+            <Label className="mb-1 block text-xs text-muted-foreground">翻译模式</Label>
             <div className="flex gap-2">
               <button
                 onClick={() => setMode("overwrite")}

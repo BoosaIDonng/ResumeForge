@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { InterviewQuestion } from "@/lib/types";
 
 type InterviewQuestionCardProps = {
   question: InterviewQuestion;
   index: number;
-  onAnswer: (questionId: number, answer: string) => void;
+  onAnswer: (questionId: string, answer: string) => void;
 };
 
 export function InterviewQuestionCard({
@@ -33,7 +34,7 @@ export function InterviewQuestionCard({
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <div className="flex items-center gap-3 mb-4">
-        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold">
+        <span className="flex items-center justify-center w-8 h-8 bg-primary/10 text-primary text-sm font-bold">
           {index + 1}
         </span>
         <h3 className="text-lg font-medium text-foreground">
@@ -53,13 +54,12 @@ export function InterviewQuestionCard({
       />
 
       <div className="flex items-center justify-between mt-4">
-        <button
+        <Button
           onClick={handleSave}
           disabled={saving || !answer.trim()}
-          className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? "保存中..." : "保存回答"}
-        </button>
+        </Button>
 
         {saved && (
           <span className="flex items-center gap-1 text-sm text-success">

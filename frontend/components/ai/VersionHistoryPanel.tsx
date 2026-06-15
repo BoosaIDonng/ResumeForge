@@ -4,7 +4,7 @@ import { listVersions, createVersion, restoreVersion, VersionInfo } from '@/lib/
 import { Clock, Save, RotateCcw } from 'lucide-react';
 
 interface Props {
-  resumeId: number;
+  resumeId: string;
   onRestore?: () => void;
 }
 
@@ -12,7 +12,7 @@ export default function VersionHistoryPanel({ resumeId, onRestore }: Props) {
   const [versions, setVersions] = useState<VersionInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [restoring, setRestoring] = useState<number | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
   const [desc, setDesc] = useState('');
   const [error, setError] = useState('');
 
@@ -44,7 +44,7 @@ export default function VersionHistoryPanel({ resumeId, onRestore }: Props) {
     }
   };
 
-  const handleRestore = async (versionId: number) => {
+  const handleRestore = async (versionId: string) => {
     if (!confirm('确定要恢复到此版本吗？当前内容将先备份。')) return;
     setRestoring(versionId);
     setError('');
@@ -83,7 +83,7 @@ export default function VersionHistoryPanel({ resumeId, onRestore }: Props) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
+          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary text-primary-foreground rounded hover:bg-primary-hover disabled:opacity-50 transition-colors whitespace-nowrap"
         >
           {saving ? '...' : <><Save className="size-3.5" /> 保存版本</>}
         </button>

@@ -32,7 +32,7 @@ public class AiChatController {
     ) {
         ChatResponse response = chatService.chat(
             provider, apiKey, baseUrl, model,
-            request.resumeId(), request.message(), request.conversationHistory()
+            request.resumeData(), request.message(), request.conversationHistory()
         );
         return ApiResponse.ok(response);
     }

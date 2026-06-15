@@ -15,18 +15,29 @@ export type ExperienceItem = {
   id?: string;
   company: string;
   position: string;
-  period: string;
+  startDate: string;      // YYYY-MM
+  endDate: string | null;  // null = 至今
   location?: string;
   description?: string;
+  technologies?: string[];
+  highlights?: string[];
+  // Keep period for backward compat (will be migrated)
+  period?: string;
 };
 
 export type ProjectItem = {
   id?: string;
   name: string;
-  role: string;
+  role?: string;
+  url?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+  technologies?: string[];
+  highlights?: string[];
+  // Keep old fields for backward compat
   period?: string;
   website?: string;
-  description?: string;
 };
 
 export type EducationItem = {
@@ -34,8 +45,13 @@ export type EducationItem = {
   school: string;
   degree: string;
   area?: string;
-  period: string;
+  startDate: string;
+  endDate: string;
+  gpa?: string;
+  highlights?: string[];
   description?: string;
+  // Keep period for backward compat
+  period?: string;
 };
 
 export type SkillItem = {
@@ -110,11 +126,6 @@ export const MODULE_REGISTRY: ModuleDef[] = [
   { id: 'design', label: '设计设置', defaultEnabled: true, removable: false },
 ];
 
-/** Get all module IDs that can be added (not always-on) */
-export const REMOVABLE_MODULE_IDS = MODULE_REGISTRY.filter(m => m.removable).map(m => m.id);
-/** Get all module IDs that are always enabled */
-export const FIXED_MODULE_IDS = MODULE_REGISTRY.filter(m => !m.removable).map(m => m.id);
-
 export type ResumeData = {
   basics: {
     name: string;
@@ -123,6 +134,16 @@ export type ResumeData = {
     phone: string;
     location: string;
     website: string;
+    age?: string;
+    gender?: string;
+    politicalStatus?: string;
+    ethnicity?: string;
+    hometown?: string;
+    maritalStatus?: string;
+    yearsOfExperience?: string;
+    educationLevel?: string;
+    wechat?: string;
+    avatar?: string;
     customFields?: CustomField[];
   };
   summary: {
@@ -167,14 +188,71 @@ function newId(): string {
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+export function parsePeriod(period: string): { startDate: string; endDate: string | null } {
+  if (!period) return { startDate: '', endDate: null };
+  const parts = period.split(/\s*[-–—~]\s*/);
+  return {
+    startDate: parts[0]?.trim() || '',
+    endDate: parts[1]?.trim() === '至今' ? null : parts[1]?.trim() || null
+  };
+}
+
 /** Migrate old-format resume data to the new schema */
 export function migrateResumeData(old: any): ResumeData {
   const defaults = emptyResumeData();
 
-  // Migrate items: add id if missing
+  // Migrate items: add id if missing, migrate period to startDate/endDate
   function ensureIds(items: any[]): any[] {
     if (!Array.isArray(items)) return [];
-    return items.map((item) => (item.id ? item : { ...item, id: newId() }));
+    return items.map((item) => {
+      const migrated = item.id ? { ...item } : { ...item, id: newId() };
+      return migrated;
+    });
+  }
+
+  function migrateExperienceItems(items: any[]): ExperienceItem[] {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => {
+      const migrated = item.id ? { ...item } : { ...item, id: newId() };
+      if (migrated.period && !migrated.startDate) {
+        const { startDate, endDate } = parsePeriod(migrated.period);
+        migrated.startDate = startDate;
+        migrated.endDate = endDate;
+      }
+      if (migrated.startDate === undefined) migrated.startDate = '';
+      if (migrated.endDate === undefined) migrated.endDate = null;
+      return migrated as ExperienceItem;
+    });
+  }
+
+  function migrateProjectItems(items: any[]): ProjectItem[] {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => {
+      const migrated = item.id ? { ...item } : { ...item, id: newId() };
+      if (migrated.period && !migrated.startDate) {
+        const { startDate, endDate } = parsePeriod(migrated.period);
+        migrated.startDate = startDate;
+        migrated.endDate = endDate;
+      }
+      if (migrated.startDate === undefined) migrated.startDate = '';
+      if (migrated.endDate === undefined) migrated.endDate = '';
+      return migrated as ProjectItem;
+    });
+  }
+
+  function migrateEducationItems(items: any[]): EducationItem[] {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => {
+      const migrated = item.id ? { ...item } : { ...item, id: newId() };
+      if (migrated.period && !migrated.startDate) {
+        const { startDate, endDate } = parsePeriod(migrated.period);
+        migrated.startDate = startDate;
+        migrated.endDate = endDate;
+      }
+      if (migrated.startDate === undefined) migrated.startDate = '';
+      if (migrated.endDate === undefined) migrated.endDate = '';
+      return migrated as EducationItem;
+    });
   }
 
   // Migrate skills from flat string[] to SkillItem[]
@@ -216,6 +294,16 @@ export function migrateResumeData(old: any): ResumeData {
       phone: old.basics?.phone || "",
       location: old.basics?.location || "",
       website: old.basics?.website || old.basics?.url || "",
+      age: old.basics?.age || "",
+      gender: old.basics?.gender || "",
+      politicalStatus: old.basics?.politicalStatus || "",
+      ethnicity: old.basics?.ethnicity || "",
+      hometown: old.basics?.hometown || "",
+      maritalStatus: old.basics?.maritalStatus || "",
+      yearsOfExperience: old.basics?.yearsOfExperience || "",
+      educationLevel: old.basics?.educationLevel || "",
+      wechat: old.basics?.wechat || "",
+      avatar: old.basics?.avatar || "",
       customFields: old.basics?.customFields || [],
     },
     summary: {
@@ -228,13 +316,13 @@ export function migrateResumeData(old: any): ResumeData {
         ? { title: "个人资料", hidden: false, ...old.sections.profiles, items: ensureIds(old.sections.profiles.items) }
         : defaults.sections.profiles,
       experience: old.sections?.experience
-        ? { title: "工作经历", hidden: false, ...old.sections.experience, items: ensureIds(old.sections.experience.items) }
+        ? { title: "工作经历", hidden: false, ...old.sections.experience, items: migrateExperienceItems(old.sections.experience.items) }
         : defaults.sections.experience,
       projects: old.sections?.projects
-        ? { title: "项目经历", hidden: false, ...old.sections.projects, items: ensureIds(old.sections.projects.items) }
+        ? { title: "项目经历", hidden: false, ...old.sections.projects, items: migrateProjectItems(old.sections.projects.items) }
         : defaults.sections.projects,
       education: old.sections?.education
-        ? { title: "教育经历", hidden: false, ...old.sections.education, items: ensureIds(old.sections.education.items) }
+        ? { title: "教育经历", hidden: false, ...old.sections.education, items: migrateEducationItems(old.sections.education.items) }
         : defaults.sections.education,
       skills: migrateSkills(old.sections?.skills),
       languages: old.sections?.languages
@@ -279,6 +367,16 @@ export function emptyResumeData(): ResumeData {
       phone: "",
       location: "",
       website: "",
+      age: "",
+      gender: "",
+      politicalStatus: "",
+      ethnicity: "",
+      hometown: "",
+      maritalStatus: "",
+      yearsOfExperience: "",
+      educationLevel: "",
+      wechat: "",
+      avatar: "",
       customFields: [],
     },
     summary: { title: "个人总结", content: "", hidden: false },

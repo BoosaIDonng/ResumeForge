@@ -1,5 +1,7 @@
+import { Lightbulb } from "lucide-react";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { KeywordList } from "@/components/analysis/KeywordList";
+import { Button } from "@/components/ui/button";
 import type { AnalysisReport as AnalysisReportType } from "@/lib/types";
 
 type Suggestion = {
@@ -156,7 +158,7 @@ export function AnalysisReport({ report, onOptimize, onInterview }: AnalysisRepo
                 </div>
                 {s.reason && (
                   <p className="mt-2 text-xs italic text-muted-foreground/70 flex items-start gap-1">
-                    <span aria-hidden="true">💡</span>
+                    <Lightbulb className="h-4 w-4 text-warning shrink-0" aria-hidden="true" />
                     {s.reason}
                   </p>
                 )}
@@ -178,18 +180,12 @@ export function AnalysisReport({ report, onOptimize, onInterview }: AnalysisRepo
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">
-        <button
-          onClick={onOptimize}
-          className="bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
+        <Button onClick={onOptimize}>
           生成优化方案
-        </button>
-        <button
-          onClick={onInterview}
-          className="border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
-        >
+        </Button>
+        <Button variant="outline" onClick={onInterview}>
           开始模拟面试
-        </button>
+        </Button>
       </div>
     </div>
   );

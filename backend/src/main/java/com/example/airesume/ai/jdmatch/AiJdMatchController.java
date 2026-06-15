@@ -1,7 +1,6 @@
 package com.example.airesume.ai.jdmatch;
 
 import com.example.airesume.common.ApiResponse;
-import com.example.airesume.task.AiTaskEntity;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,18 +27,8 @@ public class AiJdMatchController {
     ) {
         JdMatchResponse response = jdMatchService.match(
             provider, apiKey, baseUrl, model,
-            request.resumeId(), request.jobDescription()
+            request.resumeText(), request.jobDescription()
         );
         return ApiResponse.ok(response);
     }
-
-    @PostMapping("/jd-match/async")
-    public ApiResponse<TaskRef> jdMatchAsync(
-            @Valid @RequestBody JdMatchRequest request
-    ) {
-        AiTaskEntity task = jdMatchService.submitAsync(request.resumeId(), request.jobDescription());
-        return ApiResponse.ok(new TaskRef(task.getId(), task.getStatus()));
-    }
-
-    record TaskRef(Long taskId, String status) {}
 }

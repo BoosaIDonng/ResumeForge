@@ -100,17 +100,4 @@ public class AiPhraseRefiner {
         return result;
     }
 
-    /**
-     * Check how many AI phrases are detected in the text.
-     */
-    public int countAiPhrases(String text) {
-        if (text == null || text.isBlank()) return 0;
-
-        int count = 0;
-        for (Pattern pattern : REPLACEMENTS.keySet()) {
-            var matcher = pattern.matcher(text);
-            while (matcher.find()) count++;
-        }
-        return count;
-    }
 }

@@ -6,6 +6,8 @@ import { apiGet } from "@/lib/api";
 import type { PublicShareData } from "@/lib/types";
 import { migrateResumeData } from "@/components/resume/resumeData";
 import ResumePreview from "@/components/resume/ResumePreview";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { X, Lock } from "lucide-react";
 
 export default function ShareViewPage() {
@@ -93,21 +95,20 @@ export default function ShareViewPage() {
             该简历已设置访问密码
           </p>
           <form onSubmit={handlePasswordSubmit} className="mt-4 space-y-3">
-            <input
+            <Input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="请输入密码"
               autoFocus
-              className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
-            <button
+            <Button
               type="submit"
               disabled={verifying || !password.trim()}
-              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
+              className="w-full"
             >
               {verifying ? "验证中..." : "访问"}
-            </button>
+            </Button>
           </form>
         </div>
       </div>
