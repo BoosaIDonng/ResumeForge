@@ -1,13 +1,25 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppNav } from "@/components/AppNav";
-import { Geist, Lora } from "next/font/google";
+import localFont from "next/font/local";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-const lora = Lora({ subsets: ["latin"], variable: "--font-heading" });
+const geist = localFont({
+  src: [
+    { path: "../public/fonts/Geist-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../public/fonts/Geist-Bold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const lora = localFont({
+  src: "../public/fonts/Lora-Regular.ttf",
+  variable: "--font-heading",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "AI 简历优化平台",

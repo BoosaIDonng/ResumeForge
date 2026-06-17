@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
 import { resumeStorage } from "@/lib/storage";
 import type { ResumeData, CustomSection } from "./resumeData";
 import SectionOptimizeButton from "@/components/ai/SectionOptimizeButton";
 import { FieldWrapper, EditableText, EditableRichText, EditableDate, EditableList, EditableSelect } from "@/components/editor/fields";
-import { Label } from "@/components/ui/label";
+import DraggableSection from "@/components/editor/DraggableSection";
+import SortableItem from "@/components/editor/SortableItem";
 
 type Props = {
   id: string;
@@ -27,15 +27,6 @@ function newId(): string {
 
 const sectionClass = "space-y-3 border border-border p-4";
 const legendClass = "px-2 text-sm font-semibold text-muted-foreground";
-
-function MoveButtons({ index, total, onMove }: { index: number; total: number; onMove: (from: number, to: number) => void }) {
-  return (
-    <div className="flex items-center gap-1">
-      <button type="button" disabled={index === 0} onClick={() => onMove(index, index - 1)} className="text-muted-foreground/60 hover:text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed px-1" title="上移"><ChevronUp className="h-4 w-4" /></button>
-      <button type="button" disabled={index === total - 1} onClick={() => onMove(index, index + 1)} className="text-muted-foreground/60 hover:text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed px-1" title="下移"><ChevronDown className="h-4 w-4" /></button>
-    </div>
-  );
-}
 
 // ============================================================
 // Main component
@@ -166,231 +157,315 @@ export default function ResumeForm({ id, title, data, onChange }: Props) {
   }
 
   function renderProfiles() {
+    const items = data.sections.profiles.items;
     return (
       <fieldset key="profiles" id="section-profiles" data-section-id="profiles" className={sectionClass}>
         <legend className={legendClass}>个人资料 (GitHub/LinkedIn)</legend>
-        {data.sections.profiles.items.map((item, i) => (
-          <div key={item.id} className="flex items-center gap-2 bg-muted/50 p-3">
-            <EditableText label="" value={item.network} onChange={(v) => updateItem("profiles", i, "network", v)} placeholder="平台" className="w-28" />
-            <EditableText label="" value={item.username} onChange={(v) => updateItem("profiles", i, "username", v)} placeholder="用户名" className="flex-1" />
-            <EditableText label="" value={item.url || ""} onChange={(v) => updateItem("profiles", i, "url", v)} placeholder="链接" className="flex-1" />
-            <MoveButtons index={i} total={data.sections.profiles.items.length} onMove={(f, t) => moveItem("profiles", f, t)} />
-            <button type="button" onClick={() => removeItem("profiles", i)} className="text-xs text-destructive hover:text-destructive shrink-0">删除</button>
-          </div>
-        ))}
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, profiles: { ...data.sections.profiles, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="flex items-center gap-2 bg-muted/50 p-3">
+                <EditableText label="" value={item.network} onChange={(v) => updateItem("profiles", i, "network", v)} placeholder="平台" className="w-28" />
+                <EditableText label="" value={item.username} onChange={(v) => updateItem("profiles", i, "username", v)} placeholder="用户名" className="flex-1" />
+                <EditableText label="" value={item.url || ""} onChange={(v) => updateItem("profiles", i, "url", v)} placeholder="链接" className="flex-1" />
+                <button type="button" onClick={() => removeItem("profiles", i)} className="text-xs text-destructive hover:text-destructive shrink-0">删除</button>
+              </div>
+            </SortableItem>
+          ))}
+        </DraggableSection>
         <button type="button" onClick={() => addItem("profiles", { id: newId(), network: "", username: "", url: "" })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加个人资料</button>
       </fieldset>
     );
   }
 
   function renderExperience() {
+    const items = data.sections.experience.items;
     return (
       <fieldset key="experience" id="section-experience" data-section-id="experience" className={sectionClass}>
         <legend className={legendClass}>工作经历</legend>
-        {data.sections.experience.items.map((item, i) => (
-          <div key={item.id} className="space-y-3 border border-border p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
-              <div className="flex items-center gap-2">
-                <SectionOptimizeButton sectionType="experience" currentContent={`公司: ${item.company}\n职位: ${item.position}\n描述: ${item.description}`} onApply={(optimized) => { try { const p = JSON.parse(optimized); if (p.company) updateItem("experience", i, "company", p.company); if (p.position) updateItem("experience", i, "position", p.position); if (p.description) updateItem("experience", i, "description", p.description); } catch { updateItem("experience", i, "description", optimized); } }} />
-                <MoveButtons index={i} total={data.sections.experience.items.length} onMove={(f, t) => moveItem("experience", f, t)} />
-                <button type="button" onClick={() => removeItem("experience", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, experience: { ...data.sections.experience, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="space-y-3 border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <SectionOptimizeButton sectionType="experience" currentContent={`公司: ${item.company}\n职位: ${item.position}\n描述: ${item.description}`} onApply={(optimized) => { try { const p = JSON.parse(optimized); if (p.company) updateItem("experience", i, "company", p.company); if (p.position) updateItem("experience", i, "position", p.position); if (p.description) updateItem("experience", i, "description", p.description); } catch { updateItem("experience", i, "description", optimized); } }} />
+                    <button type="button" onClick={() => removeItem("experience", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+                  </div>
+                </div>
+                <FieldWrapper columns={2}>
+                  <EditableText label="公司名称" value={item.company} onChange={(v) => updateItem("experience", i, "company", v)} placeholder="公司名称" />
+                  <EditableText label="职位" value={item.position} onChange={(v) => updateItem("experience", i, "position", v)} placeholder="职位" />
+                  <EditableDate label="开始日期" value={item.startDate || ""} onChange={(v) => updateItem("experience", i, "startDate", v)} />
+                  <EditableDate label="结束日期" value={item.endDate || ""} onChange={(v) => updateItem("experience", i, "endDate", v)} nullable />
+                  <EditableText label="地点" value={item.location || ""} onChange={(v) => updateItem("experience", i, "location", v)} placeholder="北京" />
+                </FieldWrapper>
+                <EditableRichText label="工作描述" value={item.description || ""} onChange={(v) => updateItem("experience", i, "description", v)} rows={3} placeholder="描述你的工作职责和成果..." />
+                <EditableList label="技术栈" items={item.technologies || []} onChange={(v) => updateItem("experience", i, "technologies", v)} placeholder="如 React, TypeScript" />
+                <EditableList label="亮点/成就" items={item.highlights || []} onChange={(v) => updateItem("experience", i, "highlights", v)} placeholder="如 性能优化提升 50%" />
               </div>
-            </div>
-            <FieldWrapper columns={2}>
-              <EditableText label="公司名称" value={item.company} onChange={(v) => updateItem("experience", i, "company", v)} placeholder="公司名称" />
-              <EditableText label="职位" value={item.position} onChange={(v) => updateItem("experience", i, "position", v)} placeholder="职位" />
-              <EditableDate label="开始日期" value={item.startDate || ""} onChange={(v) => updateItem("experience", i, "startDate", v)} />
-              <EditableDate label="结束日期" value={item.endDate || ""} onChange={(v) => updateItem("experience", i, "endDate", v)} nullable />
-              <EditableText label="地点" value={item.location || ""} onChange={(v) => updateItem("experience", i, "location", v)} placeholder="北京" />
-            </FieldWrapper>
-            <EditableRichText label="工作描述" value={item.description || ""} onChange={(v) => updateItem("experience", i, "description", v)} rows={3} placeholder="描述你的工作职责和成果..." />
-            <EditableList label="技术栈" items={item.technologies || []} onChange={(v) => updateItem("experience", i, "technologies", v)} placeholder="如 React, TypeScript" />
-            <EditableList label="亮点/成就" items={item.highlights || []} onChange={(v) => updateItem("experience", i, "highlights", v)} placeholder="如 性能优化提升 50%" />
-          </div>
-        ))}
+            </SortableItem>
+          ))}
+        </DraggableSection>
         <button type="button" onClick={() => addItem("experience", { id: newId(), company: "", position: "", startDate: "", endDate: null, location: "", description: "", technologies: [], highlights: [] })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加工作经历</button>
       </fieldset>
     );
   }
 
   function renderProjects() {
+    const items = data.sections.projects.items;
     return (
       <fieldset key="projects" id="section-projects" data-section-id="projects" className={sectionClass}>
         <legend className={legendClass}>项目经历</legend>
-        {data.sections.projects.items.map((item, i) => (
-          <div key={item.id} className="space-y-3 border border-border p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
-              <div className="flex items-center gap-2">
-                <SectionOptimizeButton sectionType="projects" currentContent={`项目: ${item.name}\n描述: ${item.description}`} onApply={(optimized) => { try { const p = JSON.parse(optimized); if (p.name) updateItem("projects", i, "name", p.name); if (p.description) updateItem("projects", i, "description", p.description); } catch { updateItem("projects", i, "description", optimized); } }} />
-                <MoveButtons index={i} total={data.sections.projects.items.length} onMove={(f, t) => moveItem("projects", f, t)} />
-                <button type="button" onClick={() => removeItem("projects", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, projects: { ...data.sections.projects, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="space-y-3 border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <SectionOptimizeButton sectionType="projects" currentContent={`项目: ${item.name}\n描述: ${item.description}`} onApply={(optimized) => { try { const p = JSON.parse(optimized); if (p.name) updateItem("projects", i, "name", p.name); if (p.description) updateItem("projects", i, "description", p.description); } catch { updateItem("projects", i, "description", optimized); } }} />
+                    <button type="button" onClick={() => removeItem("projects", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+                  </div>
+                </div>
+                <FieldWrapper columns={2}>
+                  <EditableText label="项目名称" value={item.name} onChange={(v) => updateItem("projects", i, "name", v)} placeholder="项目名称" />
+                  <EditableText label="角色" value={item.role || ""} onChange={(v) => updateItem("projects", i, "role", v)} placeholder="角色" />
+                  <EditableDate label="开始日期" value={item.startDate || ""} onChange={(v) => updateItem("projects", i, "startDate", v)} />
+                  <EditableDate label="结束日期" value={item.endDate || ""} onChange={(v) => updateItem("projects", i, "endDate", v)} />
+                  <EditableText label="项目链接" value={item.url || ""} onChange={(v) => updateItem("projects", i, "url", v)} placeholder="https://" />
+                </FieldWrapper>
+                <EditableRichText label="项目描述" value={item.description || ""} onChange={(v) => updateItem("projects", i, "description", v)} rows={3} placeholder="描述项目内容和你的贡献..." />
+                <EditableList label="技术栈" items={item.technologies || []} onChange={(v) => updateItem("projects", i, "technologies", v)} placeholder="如 Java, Spring Boot" />
+                <EditableList label="亮点/成果" items={item.highlights || []} onChange={(v) => updateItem("projects", i, "highlights", v)} placeholder="如 日均处理 10 万订单" />
               </div>
-            </div>
-            <FieldWrapper columns={2}>
-              <EditableText label="项目名称" value={item.name} onChange={(v) => updateItem("projects", i, "name", v)} placeholder="项目名称" />
-              <EditableText label="角色" value={item.role || ""} onChange={(v) => updateItem("projects", i, "role", v)} placeholder="角色" />
-              <EditableDate label="开始日期" value={item.startDate || ""} onChange={(v) => updateItem("projects", i, "startDate", v)} />
-              <EditableDate label="结束日期" value={item.endDate || ""} onChange={(v) => updateItem("projects", i, "endDate", v)} />
-              <EditableText label="项目链接" value={item.url || ""} onChange={(v) => updateItem("projects", i, "url", v)} placeholder="https://" />
-            </FieldWrapper>
-            <EditableRichText label="项目描述" value={item.description || ""} onChange={(v) => updateItem("projects", i, "description", v)} rows={3} placeholder="描述项目内容和你的贡献..." />
-            <EditableList label="技术栈" items={item.technologies || []} onChange={(v) => updateItem("projects", i, "technologies", v)} placeholder="如 Java, Spring Boot" />
-            <EditableList label="亮点/成果" items={item.highlights || []} onChange={(v) => updateItem("projects", i, "highlights", v)} placeholder="如 日均处理 10 万订单" />
-          </div>
-        ))}
+            </SortableItem>
+          ))}
+        </DraggableSection>
         <button type="button" onClick={() => addItem("projects", { id: newId(), name: "", role: "", startDate: "", endDate: "", url: "", description: "", technologies: [], highlights: [] })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加项目经历</button>
       </fieldset>
     );
   }
 
   function renderEducation() {
+    const items = data.sections.education.items;
     return (
       <fieldset key="education" id="section-education" data-section-id="education" className={sectionClass}>
         <legend className={legendClass}>教育经历</legend>
-        {data.sections.education.items.map((item, i) => (
-          <div key={item.id} className="space-y-3 border border-border p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
-              <div className="flex items-center gap-2">
-                <MoveButtons index={i} total={data.sections.education.items.length} onMove={(f, t) => moveItem("education", f, t)} />
-                <button type="button" onClick={() => removeItem("education", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, education: { ...data.sections.education, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="space-y-3 border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => removeItem("education", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+                  </div>
+                </div>
+                <FieldWrapper columns={2}>
+                  <EditableText label="学校" value={item.school} onChange={(v) => updateItem("education", i, "school", v)} placeholder="学校名称" />
+                  <EditableText label="学位" value={item.degree} onChange={(v) => updateItem("education", i, "degree", v)} placeholder="学士/硕士/博士" />
+                  <EditableText label="专业" value={item.area || ""} onChange={(v) => updateItem("education", i, "area", v)} placeholder="计算机科学" />
+                  <EditableText label="GPA" value={item.gpa || ""} onChange={(v) => updateItem("education", i, "gpa", v)} placeholder="3.8/4.0" />
+                  <EditableDate label="开始日期" value={item.startDate || ""} onChange={(v) => updateItem("education", i, "startDate", v)} />
+                  <EditableDate label="结束日期" value={item.endDate || ""} onChange={(v) => updateItem("education", i, "endDate", v)} />
+                </FieldWrapper>
+                <EditableList label="亮点（奖学金/荣誉）" items={item.highlights || []} onChange={(v) => updateItem("education", i, "highlights", v)} placeholder="如 国家奖学金" />
               </div>
-            </div>
-            <FieldWrapper columns={2}>
-              <EditableText label="学校" value={item.school} onChange={(v) => updateItem("education", i, "school", v)} placeholder="学校名称" />
-              <EditableText label="学位" value={item.degree} onChange={(v) => updateItem("education", i, "degree", v)} placeholder="学士/硕士/博士" />
-              <EditableText label="专业" value={item.area || ""} onChange={(v) => updateItem("education", i, "area", v)} placeholder="计算机科学" />
-              <EditableText label="GPA" value={item.gpa || ""} onChange={(v) => updateItem("education", i, "gpa", v)} placeholder="3.8/4.0" />
-              <EditableDate label="开始日期" value={item.startDate || ""} onChange={(v) => updateItem("education", i, "startDate", v)} />
-              <EditableDate label="结束日期" value={item.endDate || ""} onChange={(v) => updateItem("education", i, "endDate", v)} />
-            </FieldWrapper>
-            <EditableList label="亮点（奖学金/荣誉）" items={item.highlights || []} onChange={(v) => updateItem("education", i, "highlights", v)} placeholder="如 国家奖学金" />
-          </div>
-        ))}
+            </SortableItem>
+          ))}
+        </DraggableSection>
         <button type="button" onClick={() => addItem("education", { id: newId(), school: "", degree: "", area: "", startDate: "", endDate: "", gpa: "", highlights: [] })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加教育经历</button>
       </fieldset>
     );
   }
 
   function renderSkills() {
+    const items = data.sections.skills.items;
     return (
       <fieldset key="skills" id="section-skills" data-section-id="skills" className={sectionClass}>
         <legend className={legendClass}>技能</legend>
-        {data.sections.skills.items.map((item, i) => (
-          <div key={item.id} className="bg-muted/50 p-3 space-y-2">
-            {/* Row 1: name + level + move + delete */}
-            <div className="flex items-center gap-2">
-              <EditableText label="" value={item.name} onChange={(v) => updateItem("skills", i, "name", v)} placeholder="技能类别（如：前端开发）" className="flex-1" />
-              <div className="flex items-center gap-1 shrink-0">
-                <Label className="text-[10px] text-muted-foreground/60">等级</Label>
-                <input className="w-14 h-8 border border-border bg-muted/50 px-2.5 text-sm text-foreground text-center focus:border-primary focus:bg-background focus:outline-none" type="number" min={0} max={5} placeholder="0-5" value={item.level ?? ""} onChange={(e) => updateItem("skills", i, "level", e.target.value ? Number(e.target.value) : undefined)} />
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, skills: { ...data.sections.skills, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="border border-border p-4 space-y-3 group">
+                {/* Header: category name + level + actions */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <input
+                      className="w-full h-8 border border-border bg-muted/50 px-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:bg-background focus:outline-none"
+                      placeholder="技能类别（如：前端开发）"
+                      value={item.name}
+                      onChange={(e) => updateItem("skills", i, "name", e.target.value)}
+                    />
+                  </div>
+                  {/* Level dots */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] text-muted-foreground/60 mr-1">熟练度</span>
+                    {[1, 2, 3, 4, 5].map((dot) => (
+                      <button
+                        key={dot}
+                        type="button"
+                        onClick={() => updateItem("skills", i, "level", item.level === dot ? undefined : dot)}
+                        className={`size-2.5 rounded-full transition-colors ${
+                          (item.level ?? 0) >= dot
+                            ? "bg-primary"
+                            : "bg-muted-foreground/20 hover:bg-muted-foreground/40"
+                        }`}
+                        title={`${dot}/5`}
+                      />
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => removeItem("skills", i)} className="text-xs text-muted-foreground/60 hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">删除</button>
+                </div>
+                {/* Keywords as chips */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {item.keywords.map((kw, ki) => (
+                    <span key={ki} className="inline-flex items-center gap-1 bg-primary/5 border border-primary/10 px-2 py-0.5 text-xs text-primary transition-colors hover:bg-primary/10">
+                      {kw}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newKw = item.keywords.filter((_, idx) => idx !== ki);
+                          updateItem("skills", i, "keywords", newKw);
+                        }}
+                        className="text-primary/60 hover:text-destructive ml-0.5"
+                      >×</button>
+                    </span>
+                  ))}
+                  <div className="flex-1 min-w-[140px]">
+                    <input
+                      className="w-full border-0 bg-transparent text-xs text-muted-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 h-6"
+                      placeholder="输入关键词后按 Enter 添加..."
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const val = (e.target as HTMLInputElement).value.trim();
+                          if (val && !item.keywords.includes(val)) {
+                            updateItem("skills", i, "keywords", [...item.keywords, val]);
+                            (e.target as HTMLInputElement).value = "";
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
-              <MoveButtons index={i} total={data.sections.skills.items.length} onMove={(f, t) => moveItem("skills", f, t)} />
-              <button type="button" onClick={() => removeItem("skills", i)} className="text-xs text-destructive hover:text-destructive shrink-0">删除</button>
-            </div>
-            {/* Row 2: keywords as tags */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {item.keywords.map((kw, ki) => (
-                <span key={ki} className="inline-flex items-center gap-1 bg-primary/5 px-2.5 py-0.5 text-xs text-primary">
-                  {kw}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newKw = item.keywords.filter((_, idx) => idx !== ki);
-                      updateItem("skills", i, "keywords", newKw);
-                    }}
-                    className="text-primary/80 hover:text-destructive ml-0.5"
-                  >×</button>
-                </span>
-              ))}
-              <input
-                className="flex-1 min-w-[120px] border-0 bg-transparent text-xs text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0"
-                placeholder="输入关键词后按 Enter 添加..."
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const val = (e.target as HTMLInputElement).value.trim();
-                    if (val && !item.keywords.includes(val)) {
-                      updateItem("skills", i, "keywords", [...item.keywords, val]);
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-        ))}
-        <button type="button" onClick={() => addItem("skills", { id: newId(), name: "", keywords: [], level: undefined })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加技能</button>
+            </SortableItem>
+          ))}
+        </DraggableSection>
+        <button
+          type="button"
+          onClick={() => addItem("skills", { id: newId(), name: "", keywords: [], level: undefined })}
+          className="w-full border border-dashed border-border px-3 py-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+        >
+          + 添加技能分类
+        </button>
       </fieldset>
     );
   }
 
   function renderLanguages() {
+    const items = data.sections.languages.items;
     return (
       <fieldset key="languages" id="section-languages" data-section-id="languages" className={sectionClass}>
         <legend className={legendClass}>语言</legend>
-        {data.sections.languages.items.map((item, i) => (
-          <div key={item.id} className="flex items-center gap-2 bg-muted/50 p-3">
-            <EditableText label="" value={item.name} onChange={(v) => updateItem("languages", i, "name", v)} placeholder="语言名称" className="flex-1" />
-            <EditableSelect label="" value={item.level || ""} onChange={(v) => updateItem("languages", i, "level", v)} options={[{ label: "母语", value: "native" }, { label: "流利", value: "fluent" }, { label: "中级", value: "intermediate" }, { label: "初级", value: "beginner" }]} placeholder="选择水平" />
-            <MoveButtons index={i} total={data.sections.languages.items.length} onMove={(f, t) => moveItem("languages", f, t)} />
-            <button type="button" onClick={() => removeItem("languages", i)} className="text-xs text-destructive hover:text-destructive shrink-0">删除</button>
-          </div>
-        ))}
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, languages: { ...data.sections.languages, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="flex items-center gap-2 bg-muted/50 p-3">
+                <EditableText label="" value={item.name} onChange={(v) => updateItem("languages", i, "name", v)} placeholder="语言名称" className="flex-1" />
+                <EditableSelect label="" value={item.level || ""} onChange={(v) => updateItem("languages", i, "level", v)} options={[{ label: "母语", value: "native" }, { label: "流利", value: "fluent" }, { label: "中级", value: "intermediate" }, { label: "初级", value: "beginner" }]} placeholder="选择水平" />
+                <button type="button" onClick={() => removeItem("languages", i)} className="text-xs text-destructive hover:text-destructive shrink-0">删除</button>
+              </div>
+            </SortableItem>
+          ))}
+        </DraggableSection>
         <button type="button" onClick={() => addItem("languages", { id: newId(), name: "", level: "" })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加语言</button>
       </fieldset>
     );
   }
 
   function renderCertifications() {
+    const items = data.sections.certifications.items;
     return (
       <fieldset key="certifications" id="section-certifications" data-section-id="certifications" className={sectionClass}>
         <legend className={legendClass}>证书</legend>
-        {data.sections.certifications.items.map((item, i) => (
-          <div key={item.id} className="space-y-3 border border-border p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
-              <div className="flex items-center gap-2">
-                <MoveButtons index={i} total={data.sections.certifications.items.length} onMove={(f, t) => moveItem("certifications", f, t)} />
-                <button type="button" onClick={() => removeItem("certifications", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, certifications: { ...data.sections.certifications, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="space-y-3 border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => removeItem("certifications", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+                  </div>
+                </div>
+                <FieldWrapper columns={2}>
+                  <EditableText label="证书名称" value={item.name} onChange={(v) => updateItem("certifications", i, "name", v)} placeholder="证书名称" />
+                  <EditableText label="颁发机构" value={item.issuer || ""} onChange={(v) => updateItem("certifications", i, "issuer", v)} placeholder="颁发机构" />
+                  <EditableText label="获得日期" value={item.date || ""} onChange={(v) => updateItem("certifications", i, "date", v)} placeholder="2024-01" />
+                  <EditableText label="链接" value={item.url || ""} onChange={(v) => updateItem("certifications", i, "url", v)} placeholder="https://" />
+                </FieldWrapper>
               </div>
-            </div>
-            <FieldWrapper columns={2}>
-              <EditableText label="证书名称" value={item.name} onChange={(v) => updateItem("certifications", i, "name", v)} placeholder="证书名称" />
-              <EditableText label="颁发机构" value={item.issuer || ""} onChange={(v) => updateItem("certifications", i, "issuer", v)} placeholder="颁发机构" />
-              <EditableText label="获得日期" value={item.date || ""} onChange={(v) => updateItem("certifications", i, "date", v)} placeholder="2024-01" />
-              <EditableText label="链接" value={item.url || ""} onChange={(v) => updateItem("certifications", i, "url", v)} placeholder="https://" />
-            </FieldWrapper>
-          </div>
-        ))}
+            </SortableItem>
+          ))}
+        </DraggableSection>
         <button type="button" onClick={() => addItem("certifications", { id: newId(), name: "", issuer: "", date: "", url: "" })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加证书</button>
       </fieldset>
     );
   }
 
   function renderAwards() {
+    const items = data.sections.awards.items;
     return (
       <fieldset key="awards" id="section-awards" data-section-id="awards" className={sectionClass}>
         <legend className={legendClass}>荣誉奖项</legend>
-        {data.sections.awards.items.map((item, i) => (
-          <div key={item.id} className="space-y-3 border border-border p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
-              <div className="flex items-center gap-2">
-                <MoveButtons index={i} total={data.sections.awards.items.length} onMove={(f, t) => moveItem("awards", f, t)} />
-                <button type="button" onClick={() => removeItem("awards", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+        <DraggableSection items={items.map(i => i.id).filter(Boolean) as string[]} onReorder={(newOrder) => {
+          const sorted = newOrder.map(id => items.find(i => i.id === id)).filter(Boolean) as typeof items;
+          onChange({ ...data, sections: { ...data.sections, awards: { ...data.sections.awards, items: sorted } } });
+        }}>
+          {items.map((item, i) => (
+            <SortableItem key={item.id} id={item.id ?? `${i}`}>
+              <div className="space-y-3 border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">#{i + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => removeItem("awards", i)} className="text-xs text-destructive hover:text-destructive">删除</button>
+                  </div>
+                </div>
+                <FieldWrapper columns={2}>
+                  <EditableText label="奖项名称" value={item.title} onChange={(v) => updateItem("awards", i, "title", v)} placeholder="奖项名称" />
+                  <EditableText label="颁发机构" value={item.issuer || ""} onChange={(v) => updateItem("awards", i, "issuer", v)} placeholder="颁发机构" />
+                  <EditableText label="获得日期" value={item.date || ""} onChange={(v) => updateItem("awards", i, "date", v)} placeholder="2024-01" />
+                </FieldWrapper>
+                <EditableRichText label="描述" value={item.description || ""} onChange={(v) => updateItem("awards", i, "description", v)} rows={2} placeholder="描述 (可选)" />
               </div>
-            </div>
-            <FieldWrapper columns={2}>
-              <EditableText label="奖项名称" value={item.title} onChange={(v) => updateItem("awards", i, "title", v)} placeholder="奖项名称" />
-              <EditableText label="颁发机构" value={item.issuer || ""} onChange={(v) => updateItem("awards", i, "issuer", v)} placeholder="颁发机构" />
-              <EditableText label="获得日期" value={item.date || ""} onChange={(v) => updateItem("awards", i, "date", v)} placeholder="2024-01" />
-            </FieldWrapper>
-            <EditableRichText label="描述" value={item.description || ""} onChange={(v) => updateItem("awards", i, "description", v)} rows={2} placeholder="描述 (可选)" />
-          </div>
-        ))}
+            </SortableItem>
+          ))}
+        </DraggableSection>
         <button type="button" onClick={() => addItem("awards", { id: newId(), title: "", issuer: "", date: "", description: "" })} className="border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/80 hover:text-primary transition-colors">+ 添加荣誉奖项</button>
       </fieldset>
     );
@@ -448,6 +523,14 @@ export default function ResumeForm({ id, title, data, onChange }: Props) {
     customSections: renderCustomSections,
   };
 
+  function isSectionHidden(sectionId: string): boolean {
+    if (sectionId === 'basics' || sectionId === 'design') return false;
+    if (sectionId === 'summary') return data.summary.hidden;
+    if (sectionId === 'customSections') return data.customSections.every(s => s.hidden);
+    const section = data.sections[sectionId as keyof typeof data.sections];
+    return section?.hidden ?? false;
+  }
+
   // ----------------------------------------------------------
   // Render: title + sections in enabledSections order + save
   // ----------------------------------------------------------
@@ -461,6 +544,7 @@ export default function ResumeForm({ id, title, data, onChange }: Props) {
 
       {/* Sections rendered in the exact order of enabledSections */}
       {data.enabledSections.map((sectionId) => {
+        if (isSectionHidden(sectionId)) return null;
         const renderer = RENDERERS[sectionId];
         return renderer ? renderer() : null;
       })}

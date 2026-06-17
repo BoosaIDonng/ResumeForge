@@ -173,6 +173,9 @@ export type ResumeData = {
         text?: string;
         background?: string;
       };
+      fontSize?: "small" | "medium" | "large";
+      lineSpacing?: "compact" | "normal" | "relaxed";
+      margins?: "narrow" | "normal" | "wide";
     };
     typography?: {
       body?: {

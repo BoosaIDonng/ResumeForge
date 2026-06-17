@@ -1,4 +1,5 @@
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 type Props = {
   label: string;
@@ -12,10 +13,9 @@ type Props = {
 export function EditableText({ label, value, onChange, placeholder, type = "text", className = "" }: Props) {
   return (
     <div className={className}>
-      <Label className="block text-xs text-muted-foreground mb-1">{label}</Label>
-      <input
+      {label && <Label className="block text-xs text-muted-foreground mb-1">{label}</Label>}
+      <Input
         type={type}
-        className="w-full h-8 border border-border bg-muted/50 px-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:bg-background focus:outline-none"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}

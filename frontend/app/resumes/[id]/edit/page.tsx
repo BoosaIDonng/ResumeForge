@@ -10,7 +10,8 @@ import ResumePreview from "@/components/resume/ResumePreview";
 import AiToolbar from "@/components/ai/AiToolbar";
 import ExportMenu from "@/components/export/ExportMenu";
 import EditorSidebar from "@/components/editor/EditorSidebar";
-import { ArrowLeft } from "lucide-react";
+import TemplateSelector from "@/components/resume/TemplateSelector";
+import { ArrowLeft, LayoutTemplate } from "lucide-react";
 
 export default function EditResumePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -20,6 +21,7 @@ export default function EditResumePage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [activeSection, setActiveSection] = useState("basics");
+  const [showTemplates, setShowTemplates] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,11 +78,34 @@ export default function EditResumePage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="flex flex-col h-[calc(100vh-5.5rem)]">
-      {/* Desktop header with title + export */}
+      {/* Desktop header with title + template + export */}
       <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
         <h1 className="truncate text-sm font-medium text-muted-foreground" title={resume.title}>{resume.title}</h1>
-        <ExportMenu resumeId={resume.id} />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTemplates(!showTemplates)}
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${showTemplates ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            title="切换模板"
+          >
+            <LayoutTemplate className="size-3.5" />
+            <span className="hidden sm:inline">模板</span>
+          </button>
+          <ExportMenu resumeId={resume.id} resumeData={JSON.stringify(data)} title={resume.title} />
+        </div>
       </div>
+
+      {/* Template selector panel */}
+      {showTemplates && (
+        <div className="border-b border-border bg-card px-4 py-3">
+          <TemplateSelector
+            data={data}
+            onSelect={(templateId) => {
+              setData({ ...data, metadata: { ...data.metadata, template: templateId } });
+            }}
+          />
+        </div>
+      )}
 
       {/* AI Toolbar */}
       <AiToolbar
@@ -131,6 +156,28 @@ export default function EditResumePage({ params }: { params: Promise<{ id: strin
             }}
             onDisable={(sectionId: string) => {
               setData({ ...data, enabledSections: data.enabledSections.filter(id => id !== sectionId) });
+            }}
+            onToggleVisibility={(sectionId: string) => {
+              if (sectionId === 'summary') {
+                setData({ ...data, summary: { ...data.summary, hidden: !data.summary.hidden } });
+              } else if (sectionId === 'customSections') {
+                const anyHidden = data.customSections.some(s => s.hidden);
+                setData({ ...data, customSections: data.customSections.map(s => ({ ...s, hidden: !anyHidden })) });
+              } else {
+                const section = data.sections[sectionId as keyof typeof data.sections];
+                if (section) {
+                  setData({ ...data, sections: { ...data.sections, [sectionId]: { ...section, hidden: !section.hidden } } });
+                }
+              }
+            }}
+            onRename={(sectionId: string, newTitle: string) => {
+              if (sectionId === 'customSections') {
+                // Rename the first custom section or the group title
+                // For now, just update the first custom section's title
+                if (data.customSections.length > 0) {
+                  setData({ ...data, customSections: data.customSections.map((s, i) => i === 0 ? { ...s, title: newTitle } : s) });
+                }
+              }
             }}
           />
         </div>

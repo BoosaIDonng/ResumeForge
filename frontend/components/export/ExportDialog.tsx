@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { resumeStorage } from "@/lib/storage";
 import { getTemplates } from "@/lib/api";
 
 type Template = {
@@ -21,14 +20,15 @@ type Template = {
 };
 
 type Props = {
-  resumeId: string;
+  resumeData: string;
+  title: string;
   open: boolean;
   onClose: () => void;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
-export default function ExportDialog({ resumeId, open, onClose }: Props) {
+export default function ExportDialog({ resumeData, title, open, onClose }: Props) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,16 +49,12 @@ export default function ExportDialog({ resumeId, open, onClose }: Props) {
   async function handleExport() {
     setExporting(true);
     try {
-      // Fetch resume data from localStorage
-      const resume = resumeStorage.getById(resumeId);
-      if (!resume) throw new Error("简历不存在");
-
       const res = await fetch(`${API_BASE}/api/resumes/export/pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          resumeData: typeof resume.resumeData === 'string' ? resume.resumeData : JSON.stringify(resume.resumeData),
-          title: resume.title,
+          resumeData,
+          title,
           template: selectedTemplate || undefined,
           fitOnePage,
         }),

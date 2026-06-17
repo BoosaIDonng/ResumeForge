@@ -11,10 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import ExportDialog from "./ExportDialog";
-import { resumeStorage } from "@/lib/storage";
 
 type Props = {
   resumeId: string;
+  resumeData: string;
+  title: string;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -27,23 +28,19 @@ const EXPORT_OPTIONS = [
   { format: "json", icon: Braces, label: "JSON 数据" },
 ] as const;
 
-export default function ExportMenu({ resumeId }: Props) {
+export default function ExportMenu({ resumeId, resumeData, title }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   async function handleExport(format: string) {
     setLoading(format);
     try {
-      // Fetch resume data from localStorage
-      const resume = resumeStorage.getById(resumeId);
-      if (!resume) throw new Error("简历不存在");
-
       // For PDF/DOCX, send to backend for server-side rendering
       if (format === "pdf" || format === "docx") {
         const res = await fetch(`${API_BASE}/api/resumes/export/${format}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeData: resume.resumeData, title: resume.title }),
+          body: JSON.stringify({ resumeData, title }),
         });
         if (!res.ok) throw new Error("导出失败");
         const blob = await res.blob();
@@ -63,16 +60,15 @@ export default function ExportMenu({ resumeId }: Props) {
         let extension: string;
 
         if (format === "json") {
-          const parsed = typeof resume.resumeData === 'string' ? JSON.parse(resume.resumeData) : resume.resumeData;
-          content = JSON.stringify(parsed, null, 2);
+          content = JSON.stringify(JSON.parse(resumeData), null, 2);
           mimeType = "application/json";
           extension = "json";
         } else if (format === "html") {
-          content = generateHtml(typeof resume.resumeData === 'string' ? resume.resumeData : JSON.stringify(resume.resumeData), resume.title);
+          content = generateHtml(resumeData, title);
           mimeType = "text/html";
           extension = "html";
         } else {
-          content = generatePlainText(typeof resume.resumeData === 'string' ? resume.resumeData : JSON.stringify(resume.resumeData));
+          content = generatePlainText(resumeData);
           mimeType = "text/plain";
           extension = "txt";
         }
@@ -81,7 +77,7 @@ export default function ExportMenu({ resumeId }: Props) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${resume.title || "resume"}.${extension}`;
+        a.download = `${title || "resume"}.${extension}`;
         a.click();
         URL.revokeObjectURL(url);
       }
@@ -122,7 +118,8 @@ export default function ExportMenu({ resumeId }: Props) {
         </DropdownMenuContent>
       </DropdownMenu>
       <ExportDialog
-        resumeId={resumeId}
+        resumeData={resumeData}
+        title={title}
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
       />

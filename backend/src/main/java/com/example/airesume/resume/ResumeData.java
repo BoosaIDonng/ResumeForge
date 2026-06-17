@@ -20,6 +20,16 @@ public record ResumeData(
         String phone,
         String location,
         String website,
+        String age,
+        String gender,
+        String politicalStatus,
+        String ethnicity,
+        String hometown,
+        String maritalStatus,
+        String yearsOfExperience,
+        String educationLevel,
+        String wechat,
+        String avatar,
         List<Map<String, Object>> customFields
     ) {}
 

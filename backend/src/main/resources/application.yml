@@ -22,4 +22,4 @@ ai:
     api-key: ${AI_API_KEY:}
     model: ${AI_MODEL:}
     temperature: ${AI_TEMPERATURE:0.2}
-    max-tokens: ${AI_MAX_TOKENS:4096}
+    max-tokens: ${AI_MAX_TOKENS:16384}

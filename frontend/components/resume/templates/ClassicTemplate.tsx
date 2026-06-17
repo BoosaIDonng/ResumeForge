@@ -2,6 +2,13 @@ import type { ResumeData } from "../resumeData";
 
 type Props = { data: ResumeData };
 
+function formatDateRange(startDate?: string, endDate?: string | null): string {
+  if (!startDate) return endDate || "";
+  if (endDate === null || endDate === undefined) return `${startDate} - 至今`;
+  if (!endDate) return startDate;
+  return `${startDate} - ${endDate}`;
+}
+
 export default function ClassicTemplate({ data }: Props) {
   const { basics, summary, sections } = data;
 
@@ -76,10 +83,15 @@ export default function ClassicTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-sm font-bold text-foreground">{item.company}</h3>
-                  <span className="text-xs text-muted-foreground">{item.period}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-sm italic text-muted-foreground">{item.position}{item.location ? ` · ${item.location}` : ""}</p>
                 {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -87,11 +99,16 @@ export default function ClassicTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-sm font-bold text-foreground">{item.name}</h3>
-                  {item.period && <span className="text-xs text-muted-foreground">{item.period}</span>}
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
-                <p className="text-sm italic text-muted-foreground">{item.role}</p>
-                {item.website && <p className="text-xs text-muted-foreground mt-0.5"><a href={item.website} className="hover:underline">{item.website}</a></p>}
+                {item.role && <p className="text-sm italic text-muted-foreground">{item.role}</p>}
+                {item.url && <p className="text-xs text-muted-foreground mt-0.5"><a href={item.url} className="hover:underline">{item.url}</a></p>}
                 {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -99,10 +116,15 @@ export default function ClassicTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-sm font-bold text-foreground">{item.school}</h3>
-                  <span className="text-xs text-muted-foreground">{item.period}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-sm italic text-muted-foreground">{item.degree}{item.area ? ` · ${item.area}` : ""}</p>
-                {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.gpa && <p className="text-xs text-muted-foreground">GPA: {item.gpa}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -113,7 +135,7 @@ export default function ClassicTemplate({ data }: Props) {
                     <span className="text-sm font-bold text-foreground">{item.name}</span>
                     {item.level != null && <span className="text-xs text-muted-foreground ml-1">({item.level}/5)</span>}
                     {item.keywords && item.keywords.length > 0 && (
-                      <span className="text-sm text-muted-foreground ml-2">— {item.keywords.join(", ")}</span>
+                      <span className="text-sm text-muted-foreground ml-2">— {item.keywords?.join(", ")}</span>
                     )}
                   </div>
                 ))}

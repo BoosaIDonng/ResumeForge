@@ -47,7 +47,7 @@ export default function AiToolbar({ resumeId, resumeData, onResumeUpdated, desig
     { key: "coverLetter", icon: Mail, label: "求职信" },
     { key: "translate", icon: Languages, label: "翻译" },
     { key: "versions", icon: Clock, label: "版本历史", disabled: !resumeId },
-    { key: "design", icon: Palette, label: "设计设置" },
+    { key: "design", icon: Palette, label: "模板设计" },
   ];
 
   return (

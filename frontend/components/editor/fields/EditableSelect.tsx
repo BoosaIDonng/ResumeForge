@@ -13,10 +13,10 @@ type Props = {
 export function EditableSelect({ label, value, onChange, options, placeholder = "请选择", clearable = true }: Props) {
   return (
     <div>
-      <Label className="block text-xs text-muted-foreground mb-1">{label}</Label>
+      {label && <Label className="block text-xs text-muted-foreground mb-1">{label}</Label>}
       <div className="flex items-center gap-1">
         <select
-          className="flex-1 h-8 border border-border bg-muted/50 px-2.5 text-sm text-foreground focus:border-primary focus:bg-background focus:outline-none appearance-none"
+          className="flex-1 h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         >

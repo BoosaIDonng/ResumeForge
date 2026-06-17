@@ -2,6 +2,13 @@ import type { ResumeData } from "../resumeData";
 
 type Props = { data: ResumeData };
 
+function formatDateRange(startDate?: string, endDate?: string | null): string {
+  if (!startDate) return endDate || "";
+  if (endDate === null || endDate === undefined) return `${startDate} - 至今`;
+  if (!endDate) return startDate;
+  return `${startDate} - ${endDate}`;
+}
+
 export default function MinimalTemplate({ data }: Props) {
   const { basics, summary, sections } = data;
 
@@ -72,10 +79,15 @@ export default function MinimalTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-2.5">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-[13px] font-medium text-foreground">{item.company}</h3>
-                  <span className="text-[11px] text-muted-foreground/70 font-mono">{item.period}</span>
+                  <span className="text-[11px] text-muted-foreground/70 font-mono">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-[12px] text-muted-foreground">{item.position}{item.location ? ` · ${item.location}` : ""}</p>
                 {item.description && <p className="mt-1 text-[12px] text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-[12px] text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -83,11 +95,16 @@ export default function MinimalTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-2.5">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-[13px] font-medium text-foreground">{item.name}</h3>
-                  {item.period && <span className="text-[11px] text-muted-foreground/70 font-mono">{item.period}</span>}
+                  <span className="text-[11px] text-muted-foreground/70 font-mono">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
-                <p className="text-[12px] text-muted-foreground">{item.role}</p>
-                {item.website && <p className="text-[11px] text-muted-foreground/70 font-mono mt-0.5"><a href={item.website} className="hover:text-muted-foreground">{item.website}</a></p>}
+                {item.role && <p className="text-[12px] text-muted-foreground">{item.role}</p>}
+                {item.url && <p className="text-[11px] text-muted-foreground/70 font-mono mt-0.5"><a href={item.url} className="hover:text-muted-foreground">{item.url}</a></p>}
                 {item.description && <p className="mt-1 text-[12px] text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-[12px] text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -95,10 +112,15 @@ export default function MinimalTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-2.5">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-[13px] font-medium text-foreground">{item.school}</h3>
-                  <span className="text-[11px] text-muted-foreground/70 font-mono">{item.period}</span>
+                  <span className="text-[11px] text-muted-foreground/70 font-mono">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-[12px] text-muted-foreground">{item.degree}{item.area ? ` · ${item.area}` : ""}</p>
-                {item.description && <p className="mt-1 text-[12px] text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.gpa && <p className="text-[11px] text-muted-foreground/70 font-mono">GPA: {item.gpa}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-[12px] text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -109,7 +131,7 @@ export default function MinimalTemplate({ data }: Props) {
                     <span className="text-[12px] font-medium text-foreground">{item.name}</span>
                     {item.level != null && <span className="text-[10px] text-border ml-1">{"·".repeat(item.level)}</span>}
                     {item.keywords && item.keywords.length > 0 && (
-                      <span className="text-[11px] text-muted-foreground/70 ml-2">{item.keywords.join(" · ")}</span>
+                      <span className="text-[11px] text-muted-foreground/70 ml-2">{item.keywords?.join(" · ")}</span>
                     )}
                   </div>
                 ))}

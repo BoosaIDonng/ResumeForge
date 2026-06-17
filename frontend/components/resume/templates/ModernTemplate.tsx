@@ -3,6 +3,13 @@ import type { ResumeData } from "../resumeData";
 
 type Props = { data: ResumeData };
 
+function formatDateRange(startDate?: string, endDate?: string | null): string {
+  if (!startDate) return endDate || "";
+  if (endDate === null || endDate === undefined) return `${startDate} - 至今`;
+  if (!endDate) return startDate;
+  return `${startDate} - ${endDate}`;
+}
+
 export default function ModernTemplate({ data }: Props) {
   const { basics, summary, sections } = data;
   const primary = data.metadata.design?.colors?.primary || "#1e40af";
@@ -15,10 +22,10 @@ export default function ModernTemplate({ data }: Props) {
         {basics.headline && <p className="mt-1 text-sm opacity-90">{basics.headline}</p>}
 
         <div className="mt-6 space-y-2 text-sm opacity-90">
-          {basics.email && <p><Mail className="h-3.5 w-3.5" /> {basics.email}</p>}
-          {basics.phone && <p><Smartphone className="h-3.5 w-3.5" /> {basics.phone}</p>}
-          {basics.location && <p><MapPin className="h-3.5 w-3.5" /> {basics.location}</p>}
-          {basics.website && <p><Link className="h-3.5 w-3.5" /> {basics.website}</p>}
+          {basics.email && <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 shrink-0" /> {basics.email}</p>}
+          {basics.phone && <p className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 shrink-0" /> {basics.phone}</p>}
+          {basics.location && <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 shrink-0" /> {basics.location}</p>}
+          {basics.website && <p className="flex items-center gap-2"><Link className="h-3.5 w-3.5 shrink-0" /> {basics.website}</p>}
           {(basics.customFields || []).map((f) => (
             <p key={f.id}>{f.text}</p>
           ))}
@@ -51,7 +58,7 @@ export default function ModernTemplate({ data }: Props) {
                   )}
                   {item.keywords && item.keywords.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {item.keywords.map((kw: string, ki: number) => (
+                      {item.keywords?.map((kw: string, ki: number) => (
                         <span key={ki} className="text-[10px] bg-white/20 rounded px-1.5 py-0.5">{kw}</span>
                       ))}
                     </div>
@@ -89,10 +96,15 @@ export default function ModernTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex justify-between items-baseline">
                   <h3 className="text-sm font-semibold text-foreground">{item.company}</h3>
-                  <span className="text-xs text-muted-foreground">{item.period}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{item.position}{item.location ? ` · ${item.location}` : ""}</p>
                 {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
           </section>
@@ -105,10 +117,15 @@ export default function ModernTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex justify-between items-baseline">
                   <h3 className="text-sm font-semibold text-foreground">{item.name}</h3>
-                  {item.period && <span className="text-xs text-muted-foreground">{item.period}</span>}
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{item.role}</p>
+                {item.role && <p className="text-sm text-muted-foreground">{item.role}</p>}
                 {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
           </section>
@@ -121,10 +138,15 @@ export default function ModernTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex justify-between items-baseline">
                   <h3 className="text-sm font-semibold text-foreground">{item.school}</h3>
-                  <span className="text-xs text-muted-foreground">{item.period}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{item.degree}{item.area ? ` · ${item.area}` : ""}</p>
-                {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{item.description}</p>}
+                {item.gpa && <p className="text-xs text-muted-foreground">GPA: {item.gpa}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
           </section>

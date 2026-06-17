@@ -2,6 +2,14 @@ import type { ResumeData } from "../resumeData";
 
 type Props = { data: ResumeData };
 
+/** Format startDate/endDate to a display string like "2021-01 - 至今" */
+function formatDateRange(startDate?: string, endDate?: string | null): string {
+  if (!startDate) return endDate || "";
+  if (endDate === null || endDate === undefined) return `${startDate} - 至今`;
+  if (!endDate) return startDate;
+  return `${startDate} - ${endDate}`;
+}
+
 export default function DefaultTemplate({ data }: Props) {
   const { basics, summary, sections } = data;
   const primary = data.metadata.design?.colors?.primary || "#2563eb";
@@ -62,10 +70,15 @@ export default function DefaultTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-sm font-semibold text-foreground">{item.company}</h3>
-                  <span className="text-xs text-muted-foreground">{item.period}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-sm font-medium text-muted-foreground">{item.position}{item.location ? ` · ${item.location}` : ""}</p>
                 {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -73,11 +86,16 @@ export default function DefaultTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-sm font-semibold text-foreground">{item.name}</h3>
-                  {item.period && <span className="text-xs text-muted-foreground">{item.period}</span>}
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
-                <p className="text-sm font-medium text-muted-foreground">{item.role}</p>
-                {item.website && <a href={item.website} className="text-xs hover:underline" style={{ color: primary }}>{item.website}</a>}
+                {item.role && <p className="text-sm font-medium text-muted-foreground">{item.role}</p>}
+                {item.url && <a href={item.url} className="text-xs hover:underline" style={{ color: primary }}>{item.url}</a>}
                 {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -85,10 +103,15 @@ export default function DefaultTemplate({ data }: Props) {
               <div key={item.id || i} className="mb-3">
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-sm font-semibold text-foreground">{item.school}</h3>
-                  <span className="text-xs text-muted-foreground">{item.period}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateRange(item.startDate, item.endDate)}</span>
                 </div>
                 <p className="text-sm font-medium text-muted-foreground">{item.degree}{item.area ? ` · ${item.area}` : ""}</p>
-                {item.description && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>}
+                {item.gpa && <p className="text-xs text-muted-foreground">GPA: {item.gpa}</p>}
+                {item.highlights && item.highlights.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-sm text-muted-foreground">
+                    {item.highlights?.map((h: string, hi: number) => <li key={hi}>{h}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
 
@@ -102,7 +125,7 @@ export default function DefaultTemplate({ data }: Props) {
                     </div>
                     {item.keywords && item.keywords.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
-                        {item.keywords.map((kw: string, ki: number) => (
+                        {item.keywords?.map((kw: string, ki: number) => (
                           <span key={ki} className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ backgroundColor: `${primary}15`, color: primary }}>{kw}</span>
                         ))}
                       </div>
